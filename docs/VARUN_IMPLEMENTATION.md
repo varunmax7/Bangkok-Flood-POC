@@ -137,7 +137,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T51 | Labelling app (labels + ROI) | V3.1 | TODO | |
 | T52 | Linear probe + classifier report (🧑 HU5) | V3.2 | TODO | |
 | T53 | Write `cctv_obs.parquet` (H6) + synthetic obs | V3.2 | DONE | H6 delivered on fixtures (300 rows, clip-zs-v0, macro-F1 N/A — no labels yet); `docs/handoff_H6.md` written; 6/6 tests green. T54 not built yet, so synth_obs.py uses a nearest-cell stand-in (noted in assumptions) |
-| T54 | Camera → model-cell mapping (L3 helper) | V3.2 | TODO | |
+| T54 | Camera → model-cell mapping (L3 helper) | V3.2 | DONE | cam_cells.parquet written for real registry (20m + 40m); model_series/confusion importable by Rishanth; 7/7 tests green (pond-centre depth exact, cells within buffer, κ=1 on identical series). No OSM roads yet (Dhanya) → road_clip always false |
 | T60 | Real-data integration (hydraulic, stations, satellite, obs, CCTV panel) | V3.3 | TODO | |
 | T70 | Surrogate layers, swipe, error, σ, OOD banner | V4.1 | TODO | |
 | T71 | What-if `POST /api/predict` | V4.1 | TODO | |
