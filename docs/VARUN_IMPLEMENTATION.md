@@ -126,7 +126,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T00 | Bootstrap (dirs, configs, deps, Makefile, .env.example) | — | DONE | venv on py3.12 (torch/open_clip/geopandas need <3.13); all 3 verify lines pass |
 | T01 | Fixtures (mock domain, depth, surrogate, scenarios, cameras, frames, stations) | — | DONE | 10/10 tests green incl. byte-identical rerun; a few schema fields [ASSUMPTION] since parent docs are missing — see docs/assumptions.md, docs/data_gaps.md |
 | T10 | Legal review docs + `legal_status.yaml` (🧑 HU1) | V1.1 | BLOCKED_ON_HUMAN | Gate code + templates done, tests green; stopped for HU1 — all 5 sources still PENDING |
-| T11 | Camera registry builder + validator | V1.2 | TODO | |
+| T11 | Camera registry builder + validator | V1.2 | DONE | Running on T01 fixture fallback (`is_mock: true`, 10 cams, all selectable); real cameras_input.csv still needed (HU2) |
 | T20 | CCTV archiver + quality + privacy + compaction + health | V1.3 | TODO | |
 | T21 | DDS snapshotter + offline parser | V1.3 | TODO | |
 | T30 | FastAPI backend (all §30.2 endpoints) | V1.4/V2.1 | TODO | |
