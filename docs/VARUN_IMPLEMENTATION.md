@@ -133,7 +133,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T31 | Web app skeleton + base layers + panels | V1.4/V2.1 | TODO | |
 | T40 | Frame renderer + colormaps | V2.2 | DONE | Verified on the fixture depth.nc (96 frames); 13/13 tests green; sigma_v1/error_v1 hex choices are [ASSUMPTION] (not pinned in spec) |
 | T41 | Time slider + animation player | V2.2 | TODO | |
-| T50 | Zero-shot classifier + embedding cache | V3.1 | TODO | |
+| T50 | Zero-shot classifier + embedding cache | V3.1 | DONE | CLIP ViT-B-32 laion2b_s34b_b79k loads from HF Hub (cached locally after first run); cache built for all 30 unique OK fixture frames; 5/5 tests green (soft wet-vs-dry check warns — expected, synthetic frames don't look like real floods to CLIP) |
 | T51 | Labelling app (labels + ROI) | V3.1 | TODO | |
 | T52 | Linear probe + classifier report (🧑 HU5) | V3.2 | TODO | |
 | T53 | Write `cctv_obs.parquet` (H6) + synthetic obs | V3.2 | TODO | |

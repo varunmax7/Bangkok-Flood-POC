@@ -29,5 +29,9 @@ tools/fixtures/out/**
 dashboard/static/frames/**
 !dashboard/static/frames/.gitkeep
 
+# CLIP embedding / zero-shot caches (regenerated via `make cctv-classify`, resumable)
+cctv/classifier/cache/*.parquet
+cctv/classifier/models/*.joblib
+
 # OS
 .DS_Store
