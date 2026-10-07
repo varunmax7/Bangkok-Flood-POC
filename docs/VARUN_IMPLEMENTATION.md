@@ -140,7 +140,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T54 | Camera → model-cell mapping (L3 helper) | V3.2 | DONE | cam_cells.parquet written for real registry (20m + 40m); model_series/confusion importable by Rishanth; 7/7 tests green (pond-centre depth exact, cells within buffer, κ=1 on identical series). No OSM roads yet (Dhanya) → road_clip always false |
 | T60 | Real-data integration (hydraulic, stations, satellite, obs, CCTV panel) | V3.3 | TODO | |
 | T70 | Surrogate layers, swipe, error, σ, OOD banner | V4.1 | TODO | |
-| T71 | What-if `POST /api/predict` | V4.1 | TODO | |
+| T71 | What-if `POST /api/predict` | V4.1 | DONE | Mock mode end to end: validation, caching, PARTIAL→DONE polling, OOD flag; first frames in ~0.5s (target ≤5s). 17/17 tests green. HU6 (confirm contract with Rishanth) not done yet — mock stays active regardless (§3 fallback). WhatIfPanel.tsx deferred to T31 (no React app exists yet to put it in) |
 | T80 | Provenance, MOCK watermark, sensor-ingest stub + spec | V4.2 | TODO | |
 | T81 | Perf checks, docs, demo script (🧑 HU8 recording) | V4.2 | TODO | |
 

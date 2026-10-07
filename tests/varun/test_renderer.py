@@ -111,6 +111,22 @@ def test_extent_var_produces_separate_output(tmp_path, nc_path):
     assert results["extent"]["colormap"] == "extent_v1"
 
 
+def test_render_with_sliced_da_override_manifest_matches_pngs_written(tmp_path, nc_path):
+    """T71 renders a time-sliced da_override ("first 8 frames synchronously");
+    the manifest's n_frames must match what was actually written, not the
+    full source NetCDF's time length."""
+    import xarray as xr
+
+    out_root = tmp_path / "frames"
+    ds = xr.open_dataset(nc_path)
+    manifest = render(
+        str(nc_path), RUN_ID, SOURCE, da_override=ds["depth_m"].isel(time=slice(0, 8)), out_root=str(out_root)
+    )
+    pngs = list((out_root / SOURCE / RUN_ID / "depth").glob("*.png"))
+    assert manifest["n_frames"] == 8
+    assert len(pngs) == 8
+
+
 def test_render_all_handles_no_real_outputs_yet():
     # outputs/sim and outputs/sur exist (T00) but are empty until H2/H5 land.
     assert render_all() == []

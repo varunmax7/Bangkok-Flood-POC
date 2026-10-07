@@ -45,7 +45,9 @@ def render(
     out.mkdir(parents=True, exist_ok=True)
     for i in range(merc.sizes["time"]):
         Image.fromarray(CMAPS[cmap](merc.isel(time=i).values), "RGBA").save(out / f"{i:03d}.png", optimize=True)
-    times = ds["time"].values
+    # from merc (what was actually rendered), not ds, so a sliced da_override
+    # (T71's "first 8 frames" partial render) gets a manifest matching reality.
+    times = merc["time"].values
     manifest = {
         "run_id": run_id,
         "source": source,

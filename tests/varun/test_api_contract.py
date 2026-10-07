@@ -177,7 +177,26 @@ def test_validation_fixture_metrics(client):
     assert body["metrics"]["wet_rmse_m"] == pytest.approx(0.08)
 
 
-def test_predict_and_ingest_are_501(client):
-    assert client.post("/api/predict", json={}).status_code == 501
-    assert client.get("/api/predict/anything").status_code == 501
+def test_ingest_is_501(client):
     assert client.post("/ingest/v1/observations", json=[]).status_code == 501
+
+
+def test_predict_now_implemented_by_t71(client):
+    # empty body -> 422 (missing required fields), not the old 501 stub
+    assert client.post("/api/predict", json={}).status_code == 422
+    # unknown run_id -> 404, not 501
+    assert client.get("/api/predict/anything").status_code == 404
+
+    r = client.post(
+        "/api/predict",
+        json={
+            "base_scenario_id": SCENARIO_ID,
+            "rain_scale": 1.2,
+            "duration_stretch": 1.0,
+            "canal_stage_anom_m": 0.1,
+            "outfall_stage_offset_m": 0.1,
+            "drain_multiplier": 1.0,
+        },
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] in ("PARTIAL", "DONE")
