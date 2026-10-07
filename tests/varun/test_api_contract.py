@@ -10,8 +10,15 @@ SCENARIO_ID = "MOCK_BKK-S99"
 
 @pytest.fixture(scope="module", autouse=True)
 def _fixtures_and_registry():
+    from cctv.classifier.embed import embed_new_frames
+    from cctv.classifier.write_obs import build_cctv_obs
+    from cctv.classifier.zeroshot import write_zeroshot
+
     mf.main()
     br.build_registry()
+    embed_new_frames()
+    write_zeroshot()
+    build_cctv_obs()
 
 
 @pytest.fixture
@@ -129,8 +136,17 @@ def test_cctv_registry_has_no_url_fields(client):
                 assert "https://" not in value.lower()
 
 
-def test_cctv_observations_gap_before_t53(client):
+def test_cctv_observations_now_populated_by_t53(client):
     r = client.get("/api/cctv/BMAT-0000/observations")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["items"]
+    assert "gap" not in body
+    assert all(item["ts_utc"] for item in body["items"])
+
+
+def test_cctv_observations_gap_for_unknown_camera(client):
+    r = client.get("/api/cctv/NOPE-9999/observations")
     assert r.status_code == 200
     body = r.json()
     assert body["items"] == []

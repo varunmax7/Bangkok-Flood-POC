@@ -136,7 +136,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T50 | Zero-shot classifier + embedding cache | V3.1 | DONE | CLIP ViT-B-32 laion2b_s34b_b79k loads from HF Hub (cached locally after first run); cache built for all 30 unique OK fixture frames; 5/5 tests green (soft wet-vs-dry check warns — expected, synthetic frames don't look like real floods to CLIP) |
 | T51 | Labelling app (labels + ROI) | V3.1 | TODO | |
 | T52 | Linear probe + classifier report (🧑 HU5) | V3.2 | TODO | |
-| T53 | Write `cctv_obs.parquet` (H6) + synthetic obs | V3.2 | TODO | |
+| T53 | Write `cctv_obs.parquet` (H6) + synthetic obs | V3.2 | DONE | H6 delivered on fixtures (300 rows, clip-zs-v0, macro-F1 N/A — no labels yet); `docs/handoff_H6.md` written; 6/6 tests green. T54 not built yet, so synth_obs.py uses a nearest-cell stand-in (noted in assumptions) |
 | T54 | Camera → model-cell mapping (L3 helper) | V3.2 | TODO | |
 | T60 | Real-data integration (hydraulic, stations, satellite, obs, CCTV panel) | V3.3 | TODO | |
 | T70 | Surrogate layers, swipe, error, σ, OOD banner | V4.1 | TODO | |
