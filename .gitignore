@@ -1,0 +1,29 @@
+# Secrets & local env
+.env
+secrets/*
+!secrets/.gitkeep
+
+# Data (git-ignored per docs/VARUN_IMPLEMENTATION.md §2.2), catalog is the exception
+data/**
+!data/catalog/
+!data/catalog/**
+
+# Outputs (hydraulic/surrogate runs, not committed)
+outputs/**
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# Node
+dashboard/web/node_modules/
+dashboard/web/dist/
+
+# Fixtures output (regenerated, large)
+tools/fixtures/out/**
+!tools/fixtures/out/.gitkeep
+
+# OS
+.DS_Store
