@@ -129,7 +129,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T11 | Camera registry builder + validator | V1.2 | DONE | Running on T01 fixture fallback (`is_mock: true`, 10 cams, all selectable); real cameras_input.csv still needed (HU2) |
 | T20 | CCTV archiver + quality + privacy + compaction + health | V1.3 | TODO | |
 | T21 | DDS snapshotter + offline parser | V1.3 | TODO | |
-| T30 | FastAPI backend (all §30.2 endpoints) | V1.4/V2.1 | TODO | |
+| T30 | FastAPI backend (all §30.2 endpoints) | V1.4/V2.1 | DONE | All endpoints 200 on fixtures (predict/ingest correctly 501 until T71/T80); 14/14 contract tests green |
 | T31 | Web app skeleton + base layers + panels | V1.4/V2.1 | TODO | |
 | T40 | Frame renderer + colormaps | V2.2 | TODO | |
 | T41 | Time slider + animation player | V2.2 | TODO | |

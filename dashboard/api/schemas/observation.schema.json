@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Ingest observation (POST /ingest/v1/observations, T80 §19)",
+  "type": "object",
+  "required": ["site_id", "sensor_type", "ts", "value", "unit", "quality"],
+  "properties": {
+    "site_id": { "type": "string", "pattern": "^BKK-(WL|RN|FL|CAM)-\\d{4}$" },
+    "sensor_type": { "enum": ["wl", "rain", "flow", "cam"] },
+    "ts": { "type": "string", "format": "date-time" },
+    "value": { "type": "number" },
+    "unit": { "enum": ["m", "mm", "m3s", "class"] },
+    "datum": { "type": ["string", "null"] },
+    "quality": { "enum": ["raw", "qc"] },
+    "battery_v": { "type": "number" },
+    "fw": { "type": "string" },
+    "seq": { "type": "integer" }
+  },
+  "additionalProperties": false
+}
