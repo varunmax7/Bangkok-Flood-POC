@@ -24,6 +24,7 @@ DEFAULT_POLYGON_CANDIDATES = (
     Path("tools/fixtures/out/analysis_polygon.geojson"),
 )
 DDS_HOTSPOTS = Path("data/interim/obs/dds_hotspots.geojson")
+DEFAULT_ROI_OVERRIDES = Path("cctv/registry/roi_overrides.json")
 
 VALID_SOURCES = ("BMAT", "ITIC", "LNGD")
 _URL_TOKENS = ("http://", "https://", "www.")
@@ -115,11 +116,23 @@ def build_from_csv(input_csv: Path, polygon_path: Path | None = None) -> dict:
     return {"type": "FeatureCollection", "metadata": {"is_mock": False}, "features": features}
 
 
+def _apply_roi_overrides(fc: dict, roi_overrides_path: Path) -> None:
+    """Merge cctv/labelling/label_app.py's saved ROI polygons (T51) into road_roi_px."""
+    if not roi_overrides_path.exists():
+        return
+    overrides = json.loads(roi_overrides_path.read_text())
+    for feat in fc["features"]:
+        cam_id = feat["properties"]["cam_id"]
+        if cam_id in overrides:
+            feat["properties"]["road_roi_px"] = overrides[cam_id]
+
+
 def build_registry(
     input_csv: Path = DEFAULT_INPUT_CSV,
     output_path: Path = DEFAULT_OUTPUT,
     fixture_path: Path = DEFAULT_FIXTURE,
     polygon_path: Path | None = None,
+    roi_overrides_path: Path = DEFAULT_ROI_OVERRIDES,
 ) -> dict:
     input_csv, fixture_path, output_path = Path(input_csv), Path(fixture_path), Path(output_path)
 
@@ -132,6 +145,8 @@ def build_registry(
             )
         fc = json.loads(fixture_path.read_text())
         fc.setdefault("metadata", {})["is_mock"] = True
+
+    _apply_roi_overrides(fc, Path(roi_overrides_path))
 
     for feat in fc["features"]:
         _scrub_no_urls(feat["properties"])

@@ -134,7 +134,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T40 | Frame renderer + colormaps | V2.2 | DONE | Verified on the fixture depth.nc (96 frames); 13/13 tests green; sigma_v1/error_v1 hex choices are [ASSUMPTION] (not pinned in spec) |
 | T41 | Time slider + animation player | V2.2 | TODO | |
 | T50 | Zero-shot classifier + embedding cache | V3.1 | DONE | CLIP ViT-B-32 laion2b_s34b_b79k loads from HF Hub (cached locally after first run); cache built for all 30 unique OK fixture frames; 5/5 tests green (soft wet-vs-dry check warns — expected, synthetic frames don't look like real floods to CLIP) |
-| T51 | Labelling app (labels + ROI) | V3.1 | TODO | |
+| T51 | Labelling app (labels + ROI) | V3.1 | DONE | `make label` on :8010 works end to end (next/label/undo/roi/progress); 10/10 tests green. HU5 (you + a second labeller) can start labelling whenever ready — see §3 |
 | T52 | Linear probe + classifier report (🧑 HU5) | V3.2 | TODO | |
 | T53 | Write `cctv_obs.parquet` (H6) + synthetic obs | V3.2 | DONE | H6 delivered on fixtures (300 rows, clip-zs-v0, macro-F1 N/A — no labels yet); `docs/handoff_H6.md` written; 6/6 tests green. T54 not built yet, so synth_obs.py uses a nearest-cell stand-in (noted in assumptions) |
 | T54 | Camera → model-cell mapping (L3 helper) | V3.2 | DONE | cam_cells.parquet written for real registry (20m + 40m); model_series/confusion importable by Rishanth; 7/7 tests green (pond-centre depth exact, cells within buffer, κ=1 on identical series). No OSM roads yet (Dhanya) → road_clip always false |
