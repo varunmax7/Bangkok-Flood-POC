@@ -1,9 +1,16 @@
 import os
+import sys
 from pathlib import Path
 
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# pytest's package-rootdir insertion stops at tests/ (it has no __init__.py)
+# since tests/varun does have one, so `import tools.fixtures...` /
+# `import cctv...` etc. fail unless the repo root is also on sys.path.
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 
 @pytest.fixture
