@@ -58,16 +58,33 @@ def test_scenarios_list_and_detail(client):
     assert r3.status_code == 404
 
 
-def test_runs_list_empty_before_t40(client):
-    # No frames rendered yet (T40) -> empty list, never a 500.
+def test_runs_list_never_500s(client):
+    # Whether or not T40 has rendered anything into dashboard/static/frames,
+    # this must always be a 200 + list, never a 500.
     r = client.get("/api/runs")
     assert r.status_code == 200
-    assert r.json() == []
+    assert isinstance(r.json(), list)
 
 
 def test_run_frames_404_when_missing(client):
     r = client.get("/api/runs/does-not-exist/frames")
     assert r.status_code == 404
+
+
+def test_runs_and_frames_once_t40_has_rendered(client):
+    """Integration check: render a fixture run (T40), then read it back through T30."""
+    from dashboard.render.render_frames import render_vars
+
+    run_id = "MOCK_BKK-S99_M000_lfp_mock-0"
+    nc_path = mf.OUT / "MOCK_BKK-S99" / "M000" / "depth.nc"
+    render_vars(nc_path, run_id, "hydraulic", ["depth"])
+
+    runs = client.get("/api/runs").json()
+    assert any(r["run_id"] == run_id and r["source"] == "hydraulic" for r in runs)
+
+    frames = client.get(f"/api/runs/{run_id}/frames").json()
+    assert frames["n_frames"] == 96
+    assert frames["frame_url_template"] == f"/frames/hydraulic/{run_id}/depth/{{t:03d}}.png"
 
 
 def test_run_satellite_gap(client):

@@ -25,5 +25,9 @@ dashboard/web/dist/
 tools/fixtures/out/**
 !tools/fixtures/out/.gitkeep
 
+# Rendered frames (regenerated via `make frames`/`make frames-all`, large)
+dashboard/static/frames/**
+!dashboard/static/frames/.gitkeep
+
 # OS
 .DS_Store

@@ -131,7 +131,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T21 | DDS snapshotter + offline parser | V1.3 | TODO | |
 | T30 | FastAPI backend (all §30.2 endpoints) | V1.4/V2.1 | DONE | All endpoints 200 on fixtures (predict/ingest correctly 501 until T71/T80); 14/14 contract tests green |
 | T31 | Web app skeleton + base layers + panels | V1.4/V2.1 | TODO | |
-| T40 | Frame renderer + colormaps | V2.2 | TODO | |
+| T40 | Frame renderer + colormaps | V2.2 | DONE | Verified on the fixture depth.nc (96 frames); 13/13 tests green; sigma_v1/error_v1 hex choices are [ASSUMPTION] (not pinned in spec) |
 | T41 | Time slider + animation player | V2.2 | TODO | |
 | T50 | Zero-shot classifier + embedding cache | V3.1 | TODO | |
 | T51 | Labelling app (labels + ROI) | V3.1 | TODO | |
