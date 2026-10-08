@@ -130,7 +130,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T20 | CCTV archiver + quality + privacy + compaction + health | V1.3 | TODO | |
 | T21 | DDS snapshotter + offline parser | V1.3 | TODO | |
 | T30 | FastAPI backend (all §30.2 endpoints) | V1.4/V2.1 | DONE | All endpoints 200 on fixtures (predict/ingest correctly 501 until T71/T80); 14/14 contract tests green |
-| T31 | Web app skeleton + base layers + panels | V1.4/V2.1 | TODO | |
+| T31 | Web app skeleton + base layers + panels | V1.4/V2.1 | DONE | `npm run build`/lint/`tsc --noEmit` all pass; Playwright smoke test green; verified live in a real browser (`make dashboard` on fixtures) — map, domain boundary, stations, cameras, scenario selector, footer, MOCK watermark all render. Found and fixed 4 real bugs only visible at runtime (CSS cascade collision, Vite+maplibre worker loading, deck.gl interleaved-mode WebGL corruption, invisible-on-basemap stroke color) — see docs/assumptions.md. WhatIfPanel now wired in (T71 backend was already done) |
 | T40 | Frame renderer + colormaps | V2.2 | DONE | Verified on the fixture depth.nc (96 frames); 13/13 tests green; sigma_v1/error_v1 hex choices are [ASSUMPTION] (not pinned in spec) |
 | T41 | Time slider + animation player | V2.2 | TODO | |
 | T50 | Zero-shot classifier + embedding cache | V3.1 | DONE | CLIP ViT-B-32 laion2b_s34b_b79k loads from HF Hub (cached locally after first run); cache built for all 30 unique OK fixture frames; 5/5 tests green (soft wet-vs-dry check warns — expected, synthetic frames don't look like real floods to CLIP) |
@@ -140,7 +140,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T54 | Camera → model-cell mapping (L3 helper) | V3.2 | DONE | cam_cells.parquet written for real registry (20m + 40m); model_series/confusion importable by Rishanth; 7/7 tests green (pond-centre depth exact, cells within buffer, κ=1 on identical series). No OSM roads yet (Dhanya) → road_clip always false |
 | T60 | Real-data integration (hydraulic, stations, satellite, obs, CCTV panel) | V3.3 | TODO | |
 | T70 | Surrogate layers, swipe, error, σ, OOD banner | V4.1 | TODO | |
-| T71 | What-if `POST /api/predict` | V4.1 | DONE | Mock mode end to end: validation, caching, PARTIAL→DONE polling, OOD flag; first frames in ~0.5s (target ≤5s). 17/17 tests green. HU6 (confirm contract with Rishanth) not done yet — mock stays active regardless (§3 fallback). WhatIfPanel.tsx deferred to T31 (no React app exists yet to put it in) |
+| T71 | What-if `POST /api/predict` | V4.1 | DONE | Mock mode end to end: validation, caching, PARTIAL→DONE polling, OOD flag; first frames in ~0.5s (target ≤5s). 17/17 tests green. HU6 (confirm contract with Rishanth) not done yet — mock stays active regardless (§3 fallback). WhatIfPanel.tsx now built and wired in as part of T31 |
 | T80 | Provenance, MOCK watermark, sensor-ingest stub + spec | V4.2 | TODO | |
 | T81 | Perf checks, docs, demo script (🧑 HU8 recording) | V4.2 | TODO | |
 
