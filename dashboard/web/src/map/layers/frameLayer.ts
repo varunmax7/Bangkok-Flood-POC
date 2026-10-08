@@ -1,15 +1,17 @@
 import { BitmapLayer } from '@deck.gl/layers'
 import type { RunFramesManifest } from '../../api'
+import { frameUrl } from '../framePreloader'
 
-/** Static single-frame bitmap at tIdx. T41 adds the slider/animation on top of this. */
-export function frameLayer(manifest: RunFramesManifest | null, tIdx: number, opacity = 0.85) {
+export interface FrameLayerOptions {
+  opacity?: number
+}
+
+export function frameLayer(manifest: RunFramesManifest | null, tIdx: number, opts: FrameLayerOptions = {}) {
   if (!manifest) return null
-  const t = String(tIdx).padStart(3, '0')
-  const url = manifest.frame_url_template.replace('{t:03d}', t)
   return new BitmapLayer({
     id: 'frame',
-    image: url,
+    image: frameUrl(manifest, tIdx),
     bounds: manifest.bounds_wgs84,
-    opacity,
+    opacity: opts.opacity ?? 0.85,
   })
 }

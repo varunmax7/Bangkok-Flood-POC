@@ -48,6 +48,8 @@ export default function App() {
   const runId = useAppStore((s) => s.runId)
   const setRunId = useAppStore((s) => s.setRunId)
   const tIdx = useAppStore((s) => s.tIdx)
+  const setTIdx = useAppStore((s) => s.setTIdx)
+  const variable = useAppStore((s) => s.variable)
   const manifest = useAppStore((s) => s.manifest)
   const setManifest = useAppStore((s) => s.setManifest)
   const layers = useAppStore((s) => s.layers)
@@ -85,10 +87,13 @@ export default function App() {
       return
     }
     api
-      .runFrames(runId)
-      .then(setManifest)
+      .runFrames(runId, variable)
+      .then((m) => {
+        setManifest(m)
+        setTIdx(0) // the previous tIdx may be out of range for a different variable's n_frames
+      })
       .catch(() => setManifest(null))
-  }, [runId, setManifest])
+  }, [runId, variable, setManifest, setTIdx])
 
   const deckLayers = useMemo(() => {
     const result: Layer[] = []

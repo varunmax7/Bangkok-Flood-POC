@@ -109,6 +109,26 @@ def test_scenario_yaml_required_fields():
     assert scenario["is_mock"] is True
 
 
+def test_scenario_id_consistent_across_artifacts():
+    """Regression test: depth.nc/pred.nc's scenario_id attr once didn't match
+    scenario.yaml's (missing the MOCK_ prefix), which silently broke
+    GET /api/runs?scenario_id=... (T30) -- only surfaced by T41's frontend,
+    which actually filters runs by scenario_id in a live browser. Nothing
+    schema-level catches a mismatch like this; this test joins across files
+    on purpose."""
+    mf.main()
+    scenario = yaml.safe_load((OUT / "MOCK_BKK-S99" / "scenario.yaml").read_text())
+    expected_scenario_id = scenario["scenario_id"]
+
+    hydraulic = xr.open_dataset(OUT / "MOCK_BKK-S99" / "M000" / "depth.nc")
+    assert hydraulic.attrs["scenario_id"] == expected_scenario_id
+    hydraulic.close()
+
+    surrogate = xr.open_dataset(OUT / "MOCK_BKK-S99" / "surrogate" / "pred.nc")
+    assert surrogate.attrs["scenario_id"] == expected_scenario_id
+    surrogate.close()
+
+
 def test_observations_counts_and_schema():
     mf.main()
     obs_dir = OUT / "MOCK_BKK-S99" / "observations"

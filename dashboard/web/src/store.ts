@@ -16,6 +16,7 @@ interface AppState {
   variable: string
   tIdx: number
   playing: boolean
+  fps: 2 | 3 | 4
   swipeLon: number | null
   layers: LayerVisibility
   manifest: RunFramesManifest | null
@@ -28,6 +29,7 @@ interface AppState {
   setVariable: (v: string) => void
   setTIdx: (i: number) => void
   setPlaying: (p: boolean) => void
+  setFps: (f: 2 | 3 | 4) => void
   setSwipeLon: (lon: number | null) => void
   toggleLayer: (key: keyof LayerVisibility) => void
   setManifest: (m: RunFramesManifest | null) => void
@@ -42,6 +44,7 @@ export const useAppStore = create<AppState>()((set) => ({
   variable: 'depth',
   tIdx: 0,
   playing: false,
+  fps: 2,
   swipeLon: null,
   layers: { domain: true, stations: true, cameras: true, frame: true },
   manifest: null,
@@ -54,6 +57,7 @@ export const useAppStore = create<AppState>()((set) => ({
   setVariable: (v) => set({ variable: v }),
   setTIdx: (i) => set({ tIdx: i }),
   setPlaying: (p) => set({ playing: p }),
+  setFps: (f) => set({ fps: f }),
   setSwipeLon: (lon) => set({ swipeLon: lon }),
   toggleLayer: (key) => set((state) => ({ layers: { ...state.layers, [key]: !state.layers[key] } })),
   setManifest: (m) => set({ manifest: m }),

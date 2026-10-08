@@ -145,7 +145,7 @@ def make_depth_nc(domain: dict) -> tuple[xr.Dataset, Path]:
         attrs={
             "crs": "EPSG:32647",
             "model_version": "mock-0",
-            "scenario_id": SCENARIO_ID,
+            "scenario_id": f"MOCK_{SCENARIO_ID}",  # matches scenario.yaml's scenario_id, not the bare SCENARIO_ID
             "member_id": MEMBER_ID,
             "run_id": RUN_ID,
             "data_class": "SYNTHETIC",
@@ -183,7 +183,7 @@ def make_surrogate_nc(hydraulic_ds: xr.Dataset) -> Path:
         attrs={
             "crs": "EPSG:32647",
             "surrogate_version": "mock-0",
-            "scenario_id": SCENARIO_ID,
+            "scenario_id": f"MOCK_{SCENARIO_ID}",  # matches scenario.yaml's scenario_id, not the bare SCENARIO_ID
             "member_id": MEMBER_ID,
             "run_id": f"MOCK_{SCENARIO_ID}_{MEMBER_ID}_sur_mock-0",
             "data_class": "SYNTHETIC",
