@@ -130,3 +130,73 @@ def test_render_with_sliced_da_override_manifest_matches_pngs_written(tmp_path, 
 def test_render_all_handles_no_real_outputs_yet():
     # outputs/sim and outputs/sur exist (T00) but are empty until H2/H5 land.
     assert render_all() == []
+
+
+def _make_synthetic_hydraulic_surrogate_nc(tmp_path):
+    """8x8 @ 20m hydraulic (uniform 0.1) + 4x4 @ 40m surrogate with three
+    deliberately-controlled cells, for checking error_v1's sign/transparency
+    against known values -- the real fixture's surrogate noise (std=0.01) is
+    far too small to reliably cross error_v1's 0.05 m threshold."""
+    import xarray as xr
+
+    ox, oy = 665000.0, 1520000.0
+    nx, ny = 8, 8
+    x = ox + (np.arange(nx) + 0.5) * 20
+    y = oy + (np.arange(ny) + 0.5) * 20
+    times = np.array([np.datetime64("2026-01-01T00:00:00")])
+
+    hyd_depth = np.full((1, ny, nx), 0.1, dtype="float32")
+    hyd_ds = xr.Dataset(
+        {"depth_m": (("time", "y", "x"), hyd_depth)},
+        coords={"time": times, "y": y, "x": x},
+        attrs={"crs": "EPSG:32647", "data_class": "SYNTHETIC", "is_mock": 1},
+    )
+    hyd_path = tmp_path / "hydraulic.nc"
+    hyd_ds.to_netcdf(hyd_path)
+
+    x2 = x.reshape(4, 2).mean(axis=1)
+    y2 = y.reshape(4, 2).mean(axis=1)
+    sur_depth = np.full((1, 4, 4), 0.1, dtype="float32")
+    sur_depth[0, 0, 0] = 0.5  # error = +0.4 -> strong positive (over-prediction)
+    sur_depth[0, 1, 1] = -0.3  # error = -0.4 -> strong negative (under-prediction)
+    sur_depth[0, 2, 2] = 0.11  # error = +0.01 -> below threshold, stays transparent
+    sur_ds = xr.Dataset(
+        {"depth_m": (("time", "y", "x"), sur_depth)},
+        coords={"time": times, "y": y2, "x": x2},
+        attrs={"crs": "EPSG:32647", "surrogate_version": "test-0", "data_class": "SYNTHETIC", "is_mock": 1},
+    )
+    sur_path = tmp_path / "surrogate.nc"
+    sur_ds.to_netcdf(sur_path)
+    return hyd_path, sur_path
+
+
+def test_render_error_sign_and_transparency(tmp_path):
+    from dashboard.render.render_error import render_error
+
+    hyd_path, sur_path = _make_synthetic_hydraulic_surrogate_nc(tmp_path)
+    out_root = tmp_path / "frames"
+    manifest = render_error(hyd_path, sur_path, "TEST_ERROR_RUN", out_root=str(out_root))
+    assert manifest["colormap"] == "error_v1"
+    assert manifest["var"] == "error"
+
+    img = Image.open(out_root / "surrogate" / "TEST_ERROR_RUN" / "error" / "000.png").convert("RGBA")
+    arr = np.array(img)
+
+    strong_positive = (*cm._hex_to_rgb("cb181d"), 200)  # |e| >= 0.30, over-prediction -> darkest red
+    strong_negative = (*cm._hex_to_rgb("2171b5"), 200)  # |e| >= 0.30, under-prediction -> darkest blue
+    assert np.any(np.all(arr == strong_positive, axis=-1)), "expected a strong positive-error red pixel"
+    assert np.any(np.all(arr == strong_negative, axis=-1)), "expected a strong negative-error blue pixel"
+    assert (arr[:, :, 3] == 0).sum() > 0  # untouched/near-zero-error cells stay transparent
+
+
+def test_block_average_matches_expected_reshape_mean():
+    """The TEMP local block_average() (docs/handoff_issues.md) must do a
+    plain block mean, since that's what the error calc -- and the fixture
+    generator's own surrogate grid -- assume."""
+    from dashboard.render.render_error import block_average
+
+    arr = np.arange(64, dtype="float64").reshape(1, 8, 8)
+    out = block_average(arr, factor=2)
+    assert out.shape == (1, 4, 4)
+    assert out[0, 0, 0] == pytest.approx(arr[0, 0:2, 0:2].mean())
+    assert out[0, 3, 3] == pytest.approx(arr[0, 6:8, 6:8].mean())

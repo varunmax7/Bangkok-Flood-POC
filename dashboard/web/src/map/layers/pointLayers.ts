@@ -38,6 +38,27 @@ export function stationsLayer(
   })
 }
 
+// [ASSUMPTION] GET /api/validation/{run_id}'s `points` FeatureCollection is
+// always empty today (store.py doesn't compute real hit/miss points yet --
+// that needs observation<->model joining logic outside T70's file list).
+// This renders a `hit: boolean` property convention so the layer is ready
+// the moment the backend populates it, without guessing a different schema.
+export function validationPointsLayer(fc: GeoJSON.FeatureCollection | null) {
+  if (!fc || fc.features.length === 0) return null
+  return new ScatterplotLayer({
+    id: 'validation-points',
+    data: fc.features,
+    getPosition: (f: GeoJSON.Feature) => (f.geometry as GeoJSON.Point).coordinates as [number, number],
+    getRadius: 60,
+    radiusUnits: 'meters',
+    getFillColor: (f: GeoJSON.Feature) => (f.properties?.hit ? [80, 200, 100, 220] : [220, 60, 60, 220]),
+    stroked: true,
+    getLineColor: [20, 20, 20, 200],
+    lineWidthMinPixels: 1,
+    pickable: true,
+  })
+}
+
 export function camerasLayer(fc: CctvGeoJSON | null, classByCam: Record<string, string>, onClick: (camId: string) => void) {
   if (!fc) return null
   return new ScatterplotLayer<CctvFeature>({

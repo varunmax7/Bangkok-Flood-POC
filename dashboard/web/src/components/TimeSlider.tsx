@@ -52,14 +52,20 @@ export function TimeSlider() {
   const currentUrl = manifest ? frameUrl(manifest, tIdx) : null
   const perfMeanMs = usePerfOverlay(perfEnabled, currentUrl)
 
-  // Animation loop.
+  // Animation loop. Depends on n_frames (a primitive), not `manifest` (an
+  // object reference) -- re-fetching an equivalent manifest (e.g. React
+  // StrictMode's double effect-invocation on mount, or any other redundant
+  // re-fetch) would otherwise give a new object identity every time and
+  // keep tearing down + restarting this interval, which can eat enough of
+  // a short playback window that it looks like animation never advances.
+  const nFrames = manifest?.n_frames
   useEffect(() => {
-    if (!playing || !manifest || manifest.n_frames <= 1) return
+    if (!playing || !nFrames || nFrames <= 1) return
     const id = window.setInterval(() => {
-      useAppStore.setState((s) => ({ tIdx: (s.tIdx + 1) % manifest.n_frames }))
+      useAppStore.setState((s) => ({ tIdx: (s.tIdx + 1) % nFrames }))
     }, 1000 / fps)
     return () => window.clearInterval(id)
-  }, [playing, fps, manifest])
+  }, [playing, fps, nFrames])
 
   // Preload the next few frames so playback doesn't stall on fetch.
   useEffect(() => {

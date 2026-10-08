@@ -3,8 +3,8 @@ import type { Layer } from '@deck.gl/core'
 import './App.css'
 import { MapView } from './map/MapView'
 import { domainLayer } from './map/layers/domainLayer'
-import { frameLayer } from './map/layers/frameLayer'
-import { camerasLayer, stationsLayer } from './map/layers/pointLayers'
+import { frameLayer, swipeFrameLayers } from './map/layers/frameLayer'
+import { camerasLayer, stationsLayer, validationPointsLayer } from './map/layers/pointLayers'
 import { ScenarioSelector } from './panels/ScenarioSelector'
 import { StationChart } from './panels/StationChart'
 import { CameraPanel } from './panels/CameraPanel'
@@ -15,7 +15,8 @@ import { Legend } from './components/Legend'
 import { OodBanner } from './components/OodBanner'
 import { ProvenanceFooter } from './components/ProvenanceFooter'
 import { MockWatermark } from './components/MockWatermark'
-import { api, type CctvGeoJSON, type DomainResponse, type StationsGeoJSON } from './api'
+import { SwipeDivider } from './components/SwipeDivider'
+import { api, type CctvGeoJSON, type DomainResponse, type RunFramesManifest, type StationsGeoJSON } from './api'
 import { useAppStore } from './store'
 
 function useIsMobile(breakpointPx = 768) {
@@ -43,6 +44,9 @@ export default function App() {
   const [cameras, setCameras] = useState<CctvGeoJSON | null>(null)
   const [selectedStation, setSelectedStation] = useState<string | null>(null)
   const [selectedCamera, setSelectedCamera] = useState<string | null>(null)
+  const [surrogateRunId, setSurrogateRunId] = useState<string | null>(null)
+  const [surrogateManifest, setSurrogateManifest] = useState<RunFramesManifest | null>(null)
+  const [validationPoints, setValidationPoints] = useState<GeoJSON.FeatureCollection | null>(null)
 
   const scenarioId = useAppStore((s) => s.scenarioId)
   const runId = useAppStore((s) => s.runId)
@@ -53,6 +57,9 @@ export default function App() {
   const manifest = useAppStore((s) => s.manifest)
   const setManifest = useAppStore((s) => s.setManifest)
   const layers = useAppStore((s) => s.layers)
+  const compareSource = useAppStore((s) => s.compareSource)
+  const setCompareSource = useAppStore((s) => s.setCompareSource)
+  const swipeLon = useAppStore((s) => s.swipeLon)
 
   useEffect(() => {
     api
@@ -69,16 +76,26 @@ export default function App() {
       .catch(() => setCameras(null))
   }, [])
 
-  // Pick the first available run for the selected scenario (if any).
+  // Pick the hydraulic run as primary, and track the surrogate run (if any)
+  // separately -- swipe/error/metrics all compare the two.
   useEffect(() => {
     if (!scenarioId) {
       setRunId(null)
+      setSurrogateRunId(null)
       return
     }
     api
       .runs({ scenario_id: scenarioId })
-      .then((runs) => setRunId(runs[0]?.run_id ?? null))
-      .catch(() => setRunId(null))
+      .then((runs) => {
+        const hydraulic = runs.find((r) => r.source === 'hydraulic')
+        const surrogate = runs.find((r) => r.source === 'surrogate')
+        setRunId(hydraulic?.run_id ?? runs[0]?.run_id ?? null)
+        setSurrogateRunId(surrogate?.run_id ?? null)
+      })
+      .catch(() => {
+        setRunId(null)
+        setSurrogateRunId(null)
+      })
   }, [scenarioId, setRunId])
 
   useEffect(() => {
@@ -95,6 +112,30 @@ export default function App() {
       .catch(() => setManifest(null))
   }, [runId, variable, setManifest, setTIdx])
 
+  useEffect(() => {
+    if (!surrogateRunId || compareSource !== 'surrogate') {
+      setSurrogateManifest(null)
+      return
+    }
+    api
+      .runFrames(surrogateRunId, variable)
+      .then(setSurrogateManifest)
+      .catch(() => setSurrogateManifest(null))
+  }, [surrogateRunId, compareSource, variable])
+
+  useEffect(() => {
+    if (!surrogateRunId) {
+      setValidationPoints(null)
+      return
+    }
+    api
+      .validation(surrogateRunId)
+      .then((v) => setValidationPoints(v.points ?? null))
+      .catch(() => setValidationPoints(null))
+  }, [surrogateRunId])
+
+  const bounds = boundsFromPolygon(domain?.geometry ?? null)
+
   const deckLayers = useMemo(() => {
     const result: Layer[] = []
     if (layers.domain) {
@@ -102,8 +143,13 @@ export default function App() {
       if (l) result.push(l)
     }
     if (layers.frame) {
-      const l = frameLayer(manifest, tIdx)
-      if (l) result.push(l)
+      if (compareSource === 'surrogate' && bounds) {
+        const lon = swipeLon ?? (bounds[0] + bounds[2]) / 2
+        result.push(...swipeFrameLayers(manifest, surrogateManifest, tIdx, lon, bounds))
+      } else {
+        const l = frameLayer(manifest, tIdx)
+        if (l) result.push(l)
+      }
     }
     if (layers.stations) {
       const l = stationsLayer(stations, {}, setSelectedStation)
@@ -113,10 +159,11 @@ export default function App() {
       const l = camerasLayer(cameras, {}, setSelectedCamera)
       if (l) result.push(l)
     }
+    const validationLayer = validationPointsLayer(validationPoints)
+    if (validationLayer) result.push(validationLayer)
     return result
-  }, [domain, manifest, tIdx, stations, cameras, layers])
+  }, [domain, manifest, surrogateManifest, tIdx, stations, cameras, layers, compareSource, swipeLon, bounds, validationPoints])
 
-  const bounds = boundsFromPolygon(domain?.geometry ?? null)
   const anyMock = Boolean(domain?.properties.is_mock || manifest?.is_mock)
 
   return (
@@ -125,6 +172,15 @@ export default function App() {
         <MapView layers={deckLayers} bounds={bounds} />
         <OodBanner />
         <Legend />
+        <button
+          type="button"
+          className={`compare-toggle ${compareSource === 'surrogate' ? 'active' : ''}`}
+          disabled={!surrogateRunId}
+          onClick={() => setCompareSource(compareSource === 'surrogate' ? null : 'surrogate')}
+        >
+          {compareSource === 'surrogate' ? '✕ exit compare' : '⇄ compare vs surrogate'}
+        </button>
+        {compareSource === 'surrogate' && bounds && <SwipeDivider domainBounds={bounds} />}
         <TimeSlider />
         <MockWatermark active={anyMock} />
       </div>
@@ -132,7 +188,7 @@ export default function App() {
         <ScenarioSelector />
         {selectedStation && <StationChart stationId={selectedStation} onClose={() => setSelectedStation(null)} />}
         {selectedCamera && <CameraPanel camId={selectedCamera} onClose={() => setSelectedCamera(null)} />}
-        {runId && <MetricsPanel runId={runId} />}
+        {surrogateRunId && <MetricsPanel runId={surrogateRunId} />}
         {!isMobile && <WhatIfPanel />}
       </aside>
       <ProvenanceFooter

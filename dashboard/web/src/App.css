@@ -144,6 +144,97 @@
   border-bottom: 1px solid #262b33;
 }
 
+.metrics-list-extra {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed #333a46;
+}
+
+.metric-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  letter-spacing: 0.03em;
+}
+
+.chip-pass {
+  background: #1e4620;
+  color: #8ad08a;
+}
+
+.chip-fail {
+  background: #4a1f1f;
+  color: #e88;
+}
+
+.compare-toggle {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 23, 28, 0.85);
+  color: #e8eaed;
+  border: 1px solid #3a4150;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.compare-toggle.active {
+  border-color: #3878dc;
+  color: #7aa6f0;
+}
+
+.compare-toggle:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.swipe-divider {
+  position: absolute;
+  top: 56px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.swipe-divider input[type='range'] {
+  flex: 1;
+}
+
+.swipe-label {
+  position: absolute;
+  top: -18px;
+  font-size: 10px;
+  color: #e8eaed;
+  background: rgba(20, 23, 28, 0.7);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.swipe-label-left {
+  left: 0;
+}
+
+.swipe-label-right {
+  right: 0;
+}
+
+.legend-note {
+  font-size: 10px;
+  color: #7a828c;
+  font-style: italic;
+}
+
 .whatif-panel .slider-row {
   display: flex;
   flex-direction: column;

@@ -13,10 +13,16 @@ test('time slider animates and stays within range', async ({ page }) => {
   expect(max).toBeGreaterThan(0)
 
   await page.locator('.play-button').click()
-  await page.waitForTimeout(1200) // a few frames at 2fps default
+
+  // Headless Chromium's software-rendered WebGL map can make the first
+  // real frame update janky enough to delay a tick well past its nominal
+  // 500ms interval (confirmed by tracing: the timer always catches up and
+  // settles into the correct cadence right after) -- poll generously
+  // rather than assume a fixed wall-clock number of ticks lands in a
+  // short window.
+  await expect.poll(async () => Number(await slider.inputValue()), { timeout: 8_000 }).toBeGreaterThan(0)
 
   const valueAfterPlay = Number(await slider.inputValue())
-  expect(valueAfterPlay).toBeGreaterThan(0)
   expect(valueAfterPlay).toBeLessThanOrEqual(max)
 
   // Dragging (mousedown) must pause playback.
