@@ -164,7 +164,16 @@ export default function App() {
     return result
   }, [domain, manifest, surrogateManifest, tIdx, stations, cameras, layers, compareSource, swipeLon, bounds, validationPoints])
 
-  const anyMock = Boolean(domain?.properties.is_mock || manifest?.is_mock)
+  // "whenever any rendered item has is_mock" -- check every visible layer's
+  // data, not just the current frame, so swiping to a mock surrogate run or
+  // loading a mock-only camera/station registry still shows the watermark.
+  const anyMock = Boolean(
+    domain?.properties.is_mock ||
+      manifest?.is_mock ||
+      surrogateManifest?.is_mock ||
+      stations?.features.some((f) => f.properties.is_mock) ||
+      cameras?.features.some((f) => f.properties.is_mock),
+  )
 
   return (
     <div className="app-root">
@@ -194,6 +203,7 @@ export default function App() {
       <ProvenanceFooter
         dataClass={manifest?.data_class ?? (domain?.properties.is_mock ? 'SYNTHETIC' : null)}
         modelVersion={manifest?.model_version}
+        surrogateVersion={manifest?.surrogate_version}
         runId={runId}
       />
     </div>

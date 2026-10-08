@@ -177,8 +177,9 @@ def test_validation_fixture_metrics(client):
     assert body["metrics"]["wet_rmse_m"] == pytest.approx(0.08)
 
 
-def test_ingest_is_501(client):
-    assert client.post("/ingest/v1/observations", json=[]).status_code == 501
+def test_ingest_now_implemented_by_t80(client):
+    # no X-API-Key -> 401, not the old 501 stub (full coverage: test_ingest.py)
+    assert client.post("/ingest/v1/observations", json=[]).status_code == 401
 
 
 def test_predict_now_implemented_by_t71(client):

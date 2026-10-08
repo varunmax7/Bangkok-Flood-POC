@@ -61,7 +61,11 @@ def render(
         "thresholds_m": [0.05, 0.15, 0.30, 0.50, 1.0],
         "data_class": ds.attrs.get("data_class", "SYNTHETIC"),
         "is_mock": run_id.startswith("MOCK_") or bool(ds.attrs.get("is_mock", False)),
-        "model_version": ds.attrs.get("model_version") or ds.attrs.get("surrogate_version"),
+        # kept distinct (not merged) -- T80's ProvenanceFooter shows both
+        # fields separately; a hydraulic run only ever sets model_version,
+        # a surrogate run only ever sets surrogate_version.
+        "model_version": ds.attrs.get("model_version"),
+        "surrogate_version": ds.attrs.get("surrogate_version"),
         "scenario_id": ds.attrs.get("scenario_id"),
         "max_defensible_dt_s": ds.attrs.get("max_defensible_dt_s"),
     }

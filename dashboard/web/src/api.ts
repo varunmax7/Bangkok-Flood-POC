@@ -76,6 +76,7 @@ export interface RunFramesManifest {
   data_class: string
   is_mock: boolean
   model_version: string | null
+  surrogate_version: string | null
   scenario_id: string | null
   max_defensible_dt_s: number | null
   frame_url_template: string

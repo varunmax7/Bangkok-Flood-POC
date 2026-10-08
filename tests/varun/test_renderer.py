@@ -72,6 +72,7 @@ def test_manifest_keys_match_spec(tmp_path, nc_path):
         "data_class",
         "is_mock",
         "model_version",
+        "surrogate_version",
         "scenario_id",
         "max_defensible_dt_s",
     }
@@ -80,6 +81,15 @@ def test_manifest_keys_match_spec(tmp_path, nc_path):
     assert manifest["dt_s"] == 900
     assert manifest["data_class"] == "SYNTHETIC"
     assert manifest["model_version"] == "mock-0"
+    assert manifest["surrogate_version"] is None  # a hydraulic run never sets this
+
+
+def test_surrogate_manifest_sets_surrogate_version_not_model_version(tmp_path):
+    out_root = tmp_path / "frames"
+    sur_nc = mf.OUT / "MOCK_BKK-S99" / "surrogate" / "pred.nc"
+    manifest = render(str(sur_nc), "MOCK_BKK-S99_M000_sur_mock-0", "surrogate", out_root=str(out_root))
+    assert manifest["surrogate_version"] == "mock-0"
+    assert manifest["model_version"] is None  # a surrogate run never sets this
 
 
 def test_known_pond_peak_pixel_renders_class_colour(tmp_path, nc_path):
