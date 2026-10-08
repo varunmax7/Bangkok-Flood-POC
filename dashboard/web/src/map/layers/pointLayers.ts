@@ -1,4 +1,4 @@
-import { ScatterplotLayer, TextLayer } from '@deck.gl/layers'
+import { IconLayer, ScatterplotLayer, TextLayer } from '@deck.gl/layers'
 import type { PickingInfo } from '@deck.gl/core'
 import type { CctvGeoJSON, CctvProperties, StationsGeoJSON, StationProperties } from '../../api'
 
@@ -159,12 +159,48 @@ export function camerasLayer(fc: CctvGeoJSON | null, classByCam: Record<string, 
     id: 'cameras',
     data: fc.features,
     getPosition: (f) => f.geometry.coordinates as [number, number],
-    getRadius: 90,
+    // Slightly larger than the thumbnail icon on top of it, so it reads as a
+    // severity-coloured halo around the photo rather than competing with it.
+    getRadius: 110,
     radiusUnits: 'meters',
     getFillColor: (f: CctvFeature) => CLASS_COLORS[classByCam[f.properties.cam_id] ?? ''] ?? UNKNOWN_COLOR,
     stroked: true,
     getLineColor: [20, 20, 20, 200],
     lineWidthMinPixels: 1,
+    pickable: true,
+    onClick: (info: PickingInfo<CctvFeature>) => {
+      const props = info.object?.properties as CctvProperties | undefined
+      if (props) onClick(props.cam_id)
+    },
+  })
+}
+
+// Renders the actual (blurred) CCTV thumbnail at each camera's map position,
+// layered on top of `camerasLayer`'s severity-coloured dot so the colour
+// still reads as a halo behind the photo. Only drawn for cameras that have a
+// thumbnail at/near the slider's time (see App.tsx's `thumbByCam`); cameras
+// without one yet keep showing just the plain coloured dot underneath.
+export function cameraThumbsLayer(
+  fc: CctvGeoJSON | null,
+  thumbByCam: Record<string, string>,
+  onClick: (camId: string) => void,
+) {
+  if (!fc) return null
+  const features = fc.features.filter((f) => thumbByCam[f.properties.cam_id])
+  if (features.length === 0) return null
+  return new IconLayer<CctvFeature>({
+    id: 'camera-thumbs',
+    data: features,
+    getPosition: (f) => f.geometry.coordinates as [number, number],
+    getIcon: (f: CctvFeature) => ({
+      url: thumbByCam[f.properties.cam_id],
+      width: 64,
+      height: 48,
+      anchorX: 32,
+      anchorY: 24,
+    }),
+    sizeUnits: 'pixels',
+    getSize: 48,
     pickable: true,
     onClick: (info: PickingInfo<CctvFeature>) => {
       const props = info.object?.properties as CctvProperties | undefined

@@ -48,7 +48,7 @@ export const useAppStore = create<AppState>()((set) => ({
   playing: false,
   fps: 2,
   swipeLon: null,
-  layers: { domain: true, stations: true, cameras: true, frame: true, observations: true, satellite: false },
+  layers: { domain: true, stations: false, cameras: true, frame: true, observations: false, satellite: false },
   manifest: null,
   oodFlag: false,
 

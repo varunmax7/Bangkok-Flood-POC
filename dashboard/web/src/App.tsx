@@ -6,6 +6,7 @@ import { domainLayer } from './map/layers/domainLayer'
 import { frameLayer, satelliteLayer, swipeFrameLayers } from './map/layers/frameLayer'
 import {
   camerasLayer,
+  cameraThumbsLayer,
   citizenReportsLayer,
   roadFloodLabelsLayer,
   roadFloodLayer,
@@ -254,16 +255,50 @@ export default function App() {
     return { ...observations, features }
   }, [observations, sliderTimeUtc])
 
-  // Nearest-to-slider-time class per camera, for camerasLayer's colouring.
-  const classByCam = useMemo(() => {
-    if (!sliderTimeUtc) return {}
-    const out: Record<string, string> = {}
+  // Nearest-to-slider-time observation per camera -- falls back to the
+  // latest-known one when no scenario/run is loaded yet (sliderTimeUtc is
+  // null), same convention CameraPanel itself uses, so a camera's dot/photo
+  // shows up on the map as soon as its registry+observations load rather
+  // than only after the user picks a scenario.
+  const latestObsByCam = useMemo(() => {
+    const out: Record<string, CctvObservation> = {}
     for (const [camId, items] of Object.entries(cameraObsByCam)) {
-      const nearest = nearestByTime(items, sliderTimeUtc, (i) => i.ts_utc)
-      if (nearest) out[camId] = nearest.class_smoothed ?? nearest.class
+      if (items.length === 0) continue
+      const obs = sliderTimeUtc ? (nearestByTime(items, sliderTimeUtc, (i) => i.ts_utc) ?? items[items.length - 1]) : items[items.length - 1]
+      out[camId] = obs
     }
     return out
   }, [cameraObsByCam, sliderTimeUtc])
+
+  // Map shows only the manually-captured cameras (MANUAL-000N) -- the mock
+  // BMAT/ITIC/LNGD fixture cameras stay in the registry/API (other panels
+  // and tests rely on the full set) but are noisy on the map itself: 10 of
+  // them plus 5 manual spots at this domain's zoom level overlapped into an
+  // unreadable cluster, which is what prompted filtering down to just the
+  // 5 real photo spots the user actually wants to see.
+  const manualCameras = useMemo((): CctvGeoJSON | null => {
+    if (!cameras) return null
+    return { ...cameras, features: cameras.features.filter((f) => f.properties.source === 'MANUAL') }
+  }, [cameras])
+
+  // camerasLayer's colouring.
+  const classByCam = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const [camId, obs] of Object.entries(latestObsByCam)) {
+      out[camId] = obs.class_smoothed ?? obs.class
+    }
+    return out
+  }, [latestObsByCam])
+
+  // cameraThumbsLayer's photo per camera -- agrees with classByCam above on
+  // which observation each camera shows, since both derive from latestObsByCam.
+  const thumbByCam = useMemo(() => {
+    const out: Record<string, string> = {}
+    for (const [camId, obs] of Object.entries(latestObsByCam)) {
+      out[camId] = obs.thumb_url
+    }
+    return out
+  }, [latestObsByCam])
 
   // Rain-gauge radius = rain in the hour ending at the slider's time
   // (stations.timeseries is per-15-min totals -- see docs/assumptions.md).
@@ -311,8 +346,10 @@ export default function App() {
       if (l) result.push(l)
     }
     if (layers.cameras) {
-      const l = camerasLayer(cameras, classByCam, setSelectedCamera)
+      const l = camerasLayer(manualCameras, classByCam, setSelectedCamera)
       if (l) result.push(l)
+      const thumbs = cameraThumbsLayer(manualCameras, thumbByCam, setSelectedCamera)
+      if (thumbs) result.push(thumbs)
     }
     if (layers.observations) {
       const road = roadFloodLayer(filteredObservations)
@@ -335,7 +372,7 @@ export default function App() {
     surrogateManifest,
     tIdx,
     stations,
-    cameras,
+    manualCameras,
     layers,
     compareSource,
     swipeLon,
@@ -343,6 +380,7 @@ export default function App() {
     validationPoints,
     rainByStation,
     classByCam,
+    thumbByCam,
     filteredObservations,
     selectedSatelliteAcquisition,
   ])

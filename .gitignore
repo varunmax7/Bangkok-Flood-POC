@@ -8,6 +8,10 @@ data/**
 !data/catalog/
 !data/catalog/**
 
+# Raw manual-capture source photos (pre-privacy-pipeline) -- never persisted
+# per rule 6, same as data/cctv/raw/ above; only the blurred output matters.
+my_manual_images/
+
 # Outputs (hydraulic/surrogate runs, not committed)
 outputs/**
 

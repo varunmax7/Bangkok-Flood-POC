@@ -53,8 +53,8 @@
               "status"
             ],
             "properties": {
-              "cam_id": { "type": "string", "pattern": "^(BMAT|ITIC|LNGD)-[0-9]{4}$" },
-              "source": { "enum": ["BMAT", "ITIC", "LNGD"] },
+              "cam_id": { "type": "string", "pattern": "^(BMAT|ITIC|LNGD|MANUAL)-[0-9]{4}$" },
+              "source": { "enum": ["BMAT", "ITIC", "LNGD", "MANUAL"] },
               "lon": { "type": "number" },
               "lat": { "type": "number" },
               "in_domain": { "type": "boolean" },

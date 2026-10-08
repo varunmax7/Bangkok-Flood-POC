@@ -17,7 +17,11 @@ EXAMPLE_CSV = (
 
 
 def test_fallback_to_fixtures_when_csv_missing(tmp_path):
-    fc = br.build_registry(input_csv=tmp_path / "cameras_input.csv", output_path=tmp_path / "cameras.geojson")
+    fc = br.build_registry(
+        input_csv=tmp_path / "cameras_input.csv",
+        output_path=tmp_path / "cameras.geojson",
+        manual_cameras_path=tmp_path / "no_manual_cameras.json",
+    )
     assert fc["metadata"]["is_mock"] is True
     assert (tmp_path / "cameras.geojson").exists()
     jsonschema.validate(fc, SCHEMA)
@@ -26,7 +30,11 @@ def test_fallback_to_fixtures_when_csv_missing(tmp_path):
 def test_csv_path_produces_valid_registry(tmp_path):
     csv_path = tmp_path / "cameras_input.csv"
     csv_path.write_text(EXAMPLE_CSV, encoding="utf-8")
-    fc = br.build_registry(input_csv=csv_path, output_path=tmp_path / "cameras.geojson")
+    fc = br.build_registry(
+        input_csv=csv_path,
+        output_path=tmp_path / "cameras.geojson",
+        manual_cameras_path=tmp_path / "no_manual_cameras.json",
+    )
     assert fc["metadata"]["is_mock"] is False
     assert len(fc["features"]) == 2
     jsonschema.validate(fc, SCHEMA)
@@ -35,7 +43,11 @@ def test_csv_path_produces_valid_registry(tmp_path):
 
 
 def test_unique_cam_ids_and_lonlat_sane(tmp_path):
-    fc = br.build_registry(input_csv=tmp_path / "missing.csv", output_path=tmp_path / "cameras.geojson")
+    fc = br.build_registry(
+        input_csv=tmp_path / "missing.csv",
+        output_path=tmp_path / "cameras.geojson",
+        manual_cameras_path=tmp_path / "no_manual_cameras.json",
+    )
     cam_ids = [f["properties"]["cam_id"] for f in fc["features"]]
     assert len(cam_ids) == len(set(cam_ids))
     for f in fc["features"]:
@@ -45,7 +57,11 @@ def test_unique_cam_ids_and_lonlat_sane(tmp_path):
 
 
 def test_no_url_like_strings_in_output(tmp_path):
-    fc = br.build_registry(input_csv=tmp_path / "missing.csv", output_path=tmp_path / "cameras.geojson")
+    fc = br.build_registry(
+        input_csv=tmp_path / "missing.csv",
+        output_path=tmp_path / "cameras.geojson",
+        manual_cameras_path=tmp_path / "no_manual_cameras.json",
+    )
     for f in fc["features"]:
         for v in f["properties"].values():
             if isinstance(v, str):
@@ -70,13 +86,53 @@ def test_csv_rejects_unknown_source(tmp_path):
 
 
 def test_select_for_archive_respects_cap_and_sort(tmp_path):
-    fc = br.build_registry(input_csv=tmp_path / "missing.csv", output_path=tmp_path / "cameras.geojson")
+    fc = br.build_registry(
+        input_csv=tmp_path / "missing.csv",
+        output_path=tmp_path / "cameras.geojson",
+        manual_cameras_path=tmp_path / "no_manual_cameras.json",
+    )
     selected = br.select_for_archive(fc, n=3)
     assert len(selected) <= 3
     assert all(f["properties"]["in_domain"] for f in selected)
     assert all(f["properties"]["status"] == "ACTIVE" for f in selected)
     priorities = [f["properties"]["priority"] for f in selected]
     assert priorities == sorted(priorities)
+
+
+def test_manual_cameras_merged_and_excluded_from_archive(tmp_path):
+    manual_path = tmp_path / "manual_cameras.json"
+    manual_path.write_text(
+        json.dumps(
+            [
+                {
+                    "cam_id": "MANUAL-0001",
+                    "lon": 100.585,
+                    "lat": 13.850,
+                    "loc_method": "ASSUMPTION_PLACEHOLDER",
+                    "is_mock": True,
+                }
+            ]
+        )
+    )
+    fc = br.build_registry(
+        input_csv=tmp_path / "missing.csv", output_path=tmp_path / "cameras.geojson", manual_cameras_path=manual_path
+    )
+    jsonschema.validate(fc, SCHEMA)
+    manual = next(f for f in fc["features"] if f["properties"]["cam_id"] == "MANUAL-0001")
+    assert manual["properties"]["source"] == "MANUAL"
+    assert manual["properties"]["is_mock"] is True
+
+    # Never auto-fetched: no legal_status.yaml entry exists for "manual", and
+    # it has no live snapshot URL (cctv/manual/README.md's NO_GO fallback).
+    selected_ids = {f["properties"]["cam_id"] for f in br.select_for_archive(fc)}
+    assert "MANUAL-0001" not in selected_ids
+
+    # Merged in fresh each build -- survives a registry rebuild rather than
+    # only existing until the next regen overwrites DEFAULT_OUTPUT.
+    fc2 = br.build_registry(
+        input_csv=tmp_path / "missing.csv", output_path=tmp_path / "cameras.geojson", manual_cameras_path=manual_path
+    )
+    assert any(f["properties"]["cam_id"] == "MANUAL-0001" for f in fc2["features"])
 
 
 def test_select_for_archive_default_cap_50():

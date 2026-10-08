@@ -319,12 +319,17 @@ def cctv_observations(cam_id: str, start: str | None = None, end: str | None = N
                     for k in ("p_normal", "p_waterlogging", "p_flooding", "p_severe", "p_unusable")
                     if k in row
                 },
+                "depth_proxy_bin": row.get("depth_proxy_bin"),
+                "depth_proxy_m": row.get("depth_proxy_m"),
+                "water_pixel_pct": row.get("water_pixel_pct"),
+                "is_submerged": row.get("is_submerged"),
                 "quality_flag": row["quality_flag"],
                 "thumb_url": f"/thumbs/{row['cam_id']}/{row['ts_utc'][:10].replace('-', '')}/"
                 f"{row['cam_id']}_{row['ts_utc'].replace('-', '').replace(':', '')}.jpg",
             }
         )
     return rows
+
 
 
 # ------------------------------------------------------------ observations ---

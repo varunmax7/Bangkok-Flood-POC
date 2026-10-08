@@ -152,7 +152,7 @@ def test_cctv_registry_has_no_url_fields(client):
     r = client.get("/api/cctv")
     assert r.status_code == 200
     fc = r.json()
-    assert len(fc["features"]) == 10
+    assert len(fc["features"]) == 15  # 10 mock fixture cameras + 5 MANUAL-000N (cctv/registry/manual_cameras.json)
     for f in fc["features"]:
         for key, value in f["properties"].items():
             assert "url" not in key.lower()

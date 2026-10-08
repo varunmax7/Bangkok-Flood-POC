@@ -323,6 +323,166 @@
     "status": "ACTIVE",
     "is_mock": true
    }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     100.555,
+     13.795
+    ]
+   },
+   "properties": {
+    "cam_id": "MANUAL-0001",
+    "source": "MANUAL",
+    "source_cam_ref": null,
+    "name_th": null,
+    "name_en": "Manual capture 1 (unverified location)",
+    "lon": 100.555,
+    "lat": 13.795,
+    "loc_method": "ASSUMPTION_PLACEHOLDER",
+    "loc_accuracy_m": null,
+    "heading_deg": null,
+    "road_name": null,
+    "refresh_s": null,
+    "calib_refs": null,
+    "priority": 50,
+    "in_domain": true,
+    "nearest_dds_point_id": null,
+    "dist_dds_m": null,
+    "road_roi_px": null,
+    "status": "ACTIVE",
+    "is_mock": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     100.615,
+     13.82
+    ]
+   },
+   "properties": {
+    "cam_id": "MANUAL-0002",
+    "source": "MANUAL",
+    "source_cam_ref": null,
+    "name_th": null,
+    "name_en": "Manual capture 2 (unverified location)",
+    "lon": 100.615,
+    "lat": 13.82,
+    "loc_method": "ASSUMPTION_PLACEHOLDER",
+    "loc_accuracy_m": null,
+    "heading_deg": null,
+    "road_name": null,
+    "refresh_s": null,
+    "calib_refs": null,
+    "priority": 50,
+    "in_domain": true,
+    "nearest_dds_point_id": null,
+    "dist_dds_m": null,
+    "road_roi_px": null,
+    "status": "ACTIVE",
+    "is_mock": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     100.545,
+     13.87
+    ]
+   },
+   "properties": {
+    "cam_id": "MANUAL-0003",
+    "source": "MANUAL",
+    "source_cam_ref": null,
+    "name_th": null,
+    "name_en": "Manual capture 3 (unverified location)",
+    "lon": 100.545,
+    "lat": 13.87,
+    "loc_method": "ASSUMPTION_PLACEHOLDER",
+    "loc_accuracy_m": null,
+    "heading_deg": null,
+    "road_name": null,
+    "refresh_s": null,
+    "calib_refs": null,
+    "priority": 50,
+    "in_domain": true,
+    "nearest_dds_point_id": null,
+    "dist_dds_m": null,
+    "road_roi_px": null,
+    "status": "ACTIVE",
+    "is_mock": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     100.6,
+     13.9
+    ]
+   },
+   "properties": {
+    "cam_id": "MANUAL-0004",
+    "source": "MANUAL",
+    "source_cam_ref": null,
+    "name_th": null,
+    "name_en": "Manual capture 4 (unverified location)",
+    "lon": 100.6,
+    "lat": 13.9,
+    "loc_method": "ASSUMPTION_PLACEHOLDER",
+    "loc_accuracy_m": null,
+    "heading_deg": null,
+    "road_name": null,
+    "refresh_s": null,
+    "calib_refs": null,
+    "priority": 50,
+    "in_domain": true,
+    "nearest_dds_point_id": null,
+    "dist_dds_m": null,
+    "road_roi_px": null,
+    "status": "ACTIVE",
+    "is_mock": true
+   }
+  },
+  {
+   "type": "Feature",
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     100.62,
+     13.845
+    ]
+   },
+   "properties": {
+    "cam_id": "MANUAL-0005",
+    "source": "MANUAL",
+    "source_cam_ref": null,
+    "name_th": null,
+    "name_en": "Manual capture 5 (unverified location)",
+    "lon": 100.62,
+    "lat": 13.845,
+    "loc_method": "ASSUMPTION_PLACEHOLDER",
+    "loc_accuracy_m": null,
+    "heading_deg": null,
+    "road_name": null,
+    "refresh_s": null,
+    "calib_refs": null,
+    "priority": 50,
+    "in_domain": true,
+    "nearest_dds_point_id": null,
+    "dist_dds_m": null,
+    "road_roi_px": null,
+    "status": "ACTIVE",
+    "is_mock": true
+   }
   }
  ]
 }

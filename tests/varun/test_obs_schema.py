@@ -3,7 +3,16 @@ import pandas as pd
 import pytest
 
 from cctv.classifier.synth_obs import build_synth_obs
-from cctv.classifier.write_obs import OUT_COLUMNS, PROB_COLS, _smoothed_series, build_cctv_obs, model_version
+from cctv.classifier.write_obs import (
+    OUT_COLUMNS,
+    PROB_COLS,
+    _depth_estimate_combined,
+    _severe_depth_from_pixels,
+    _smoothed_series,
+    _water_pixel_pct,
+    build_cctv_obs,
+    model_version,
+)
 from cctv.registry import build_registry as br
 from tools.fixtures import make_fixtures as mf
 
@@ -82,6 +91,76 @@ def test_smoothing_skips_unusable_frames_in_window():
     )
     smoothed = _smoothed_series(df)
     assert smoothed == ["FLOODING", "FLOODING", "FLOODING", "NORMAL"]
+
+
+def test_severe_depth_from_pixels_monotonic_and_bounded():
+    pcts = [0.0, 0.05, 0.10, 0.25, 0.40, 0.544, 0.55, 0.70, 0.85, 1.0]
+    depths = [_severe_depth_from_pixels(p) for p in pcts]
+    assert depths == sorted(depths)  # monotonic non-decreasing in water_pct
+    assert depths[0] >= 0.30  # never below the SEVERE_FLOODING bin floor
+    assert depths[-1] <= 1.50  # capped at the top breakpoint, never invented higher
+
+
+def test_depth_estimate_combined_regression_submerged_car_case():
+    """Regression test for the exact bug this was built to fix: a frame the
+    classifier is confident is SEVERE_FLOODING (p_severe=0.88) with 54%
+    water-pixel coverage must read near the car-bonnet depth (~0.80-0.95 m)
+    the pixel breakpoint table targets -- not the old flat ~0.47 m bin
+    midpoint a plain CLIP-weighted average alone would give."""
+    bins = {"NORMAL": (0.00, 0.05), "WATERLOGGING": (0.05, 0.15), "FLOODING": (0.15, 0.30), "SEVERE_FLOODING": (0.30, None)}
+    probs = {"p_normal": 0.007, "p_waterlogging": 0.004, "p_flooding": 0.113, "p_severe": 0.883, "p_unusable": 0.0}
+    depth = _depth_estimate_combined(probs, bins, water_pixel_pct=0.544)
+    assert depth is not None
+    assert 0.80 <= depth <= 0.95
+
+
+def test_depth_estimate_combined_falls_back_to_clip_without_pixels_or_confidence():
+    bins = {"NORMAL": (0.00, 0.05), "WATERLOGGING": (0.05, 0.15), "FLOODING": (0.15, 0.30), "SEVERE_FLOODING": (0.30, None)}
+    # High p_severe but no pixel data -> CLIP-weighted blend only, not None.
+    probs = {"p_normal": 0.0, "p_waterlogging": 0.0, "p_flooding": 0.0, "p_severe": 1.0, "p_unusable": 0.0}
+    depth_no_pixels = _depth_estimate_combined(probs, bins, water_pixel_pct=None)
+    assert depth_no_pixels is not None
+
+    # Mostly-dry classification (p_severe well under the 0.50 gate) ignores
+    # even a high water_pixel_pct -- the pixel path only ever applies to
+    # frames the classifier itself already believes are severely flooded.
+    dry_probs = {"p_normal": 0.9, "p_waterlogging": 0.05, "p_flooding": 0.03, "p_severe": 0.02, "p_unusable": 0.0}
+    depth_dry = _depth_estimate_combined(dry_probs, bins, water_pixel_pct=0.95)
+    assert depth_dry is not None
+    assert depth_dry < 0.10  # stays near the NORMAL/WATERLOGGING range, not inflated by pixels
+
+
+def test_water_pixel_pct_distinguishes_blue_water_from_bright_sky(tmp_path):
+    from PIL import Image
+
+    water_path = tmp_path / "water.jpg"
+    Image.new("RGB", (120, 90), (90, 110, 130)).save(water_path)  # desaturated blue-grey, like real floodwater
+    sky_path = tmp_path / "sky.jpg"
+    Image.new("RGB", (120, 90), (235, 235, 245)).save(sky_path)  # bright near-white
+
+    assert _water_pixel_pct(str(water_path)) > 0.5
+    assert _water_pixel_pct(str(sky_path)) < 0.2
+    assert _water_pixel_pct(None) is None
+    assert _water_pixel_pct(str(tmp_path / "does_not_exist.jpg")) is None
+
+
+def test_build_cctv_obs_is_submerged_gated_by_severe_confidence(tmp_path):
+    """Regression test for build_cctv_obs's real wiring, not just the pure
+    helper functions above: is_submerged must never be True for a row the
+    classifier itself doesn't believe is SEVERE_FLOODING, however high that
+    row's raw water_pixel_pct happens to read (grey_water's colour mask
+    can't tell turbid floodwater from plain dry pavement -- see the
+    grey_water weight comment in write_obs.py)."""
+    out_path = tmp_path / "cctv_obs.parquet"
+    df = build_cctv_obs(out_path=out_path)
+    assert "is_submerged" in df.columns
+    assert "depth_proxy_m" in df.columns
+    assert "water_pixel_pct" in df.columns
+
+    submerged = df[df["is_submerged"] == True]  # noqa: E712
+    if not submerged.empty:
+        assert (submerged["p_severe"] >= 0.50).all()
+        assert (submerged["water_pixel_pct"] >= 0.70).all()
 
 
 def test_synth_obs_schema(tmp_path):

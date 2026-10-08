@@ -81,6 +81,16 @@ def build_synth_obs(
                     **probs,
                     "class_smoothed": cls,
                     "depth_proxy_bin": _depth_proxy_bin_for_class(cls, bins),
+                    # The fixture's own simulated depth at this cell is already
+                    # exact ground truth here (that's what `cls` was derived
+                    # from above) -- unlike the real CCTV path, which only
+                    # ever has a CLIP-probability/pixel-based *estimate*.
+                    "depth_proxy_m": round(depth_m, 3),
+                    # No real image/pixels exist for this synthetic path
+                    # (driven purely by the fixture depth grid, not a frame
+                    # file) -- never invented, per rule 8.
+                    "water_pixel_pct": None,
+                    "is_submerged": None,
                     "quality_flag": "OK",
                     "frame_sha1": None,
                     "model_version": "synth-from-depth-v0",

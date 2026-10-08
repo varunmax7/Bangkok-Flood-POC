@@ -25,6 +25,7 @@ DEFAULT_POLYGON_CANDIDATES = (
 )
 DDS_HOTSPOTS = Path("data/interim/obs/dds_hotspots.geojson")
 DEFAULT_ROI_OVERRIDES = Path("cctv/registry/roi_overrides.json")
+DEFAULT_MANUAL_CAMERAS = Path("cctv/registry/manual_cameras.json")
 
 VALID_SOURCES = ("BMAT", "ITIC", "LNGD")
 _URL_TOKENS = ("http://", "https://", "www.")
@@ -116,6 +117,59 @@ def build_from_csv(input_csv: Path, polygon_path: Path | None = None) -> dict:
     return {"type": "FeatureCollection", "metadata": {"is_mock": False}, "features": features}
 
 
+def _load_manual_cameras(manual_path: Path, polygon_path: Path | None = None) -> list[dict]:
+    """Cameras ingested via cctv.archiver.ingest_manual (NO_GO fallback, see
+    cctv/manual/README.md) never go through build_from_csv -- they have no
+    live snapshot URL or source_cam_ref to derive a position from. This reads
+    a small hand-maintained JSON file (one object per manual camera) so they
+    survive a `build_registry()` re-run instead of only existing until the
+    next regen overwrites DEFAULT_OUTPUT from the CSV/fixture branch.
+
+    Each entry must say its own `is_mock` and `loc_method` explicitly --
+    nothing here is invented. A `loc_method` of "ASSUMPTION_PLACEHOLDER"
+    (see docs/assumptions.md) means the lon/lat is not a real geocode, just
+    a point inside the domain so the camera is clickable on the map; such
+    entries should also set `is_mock: true` so the dashboard's MOCK
+    watermark warns that the *position* (not necessarily the imagery) isn't
+    verified.
+    """
+    if not manual_path.exists():
+        return []
+    polygon = _load_polygon(polygon_path)
+    entries = json.loads(manual_path.read_text())
+    features = []
+    for i, row in enumerate(entries, start=1):
+        cam_id = row.get("cam_id") or f"MANUAL-{i:04d}"
+        lon, lat = float(row["lon"]), float(row["lat"])
+        in_domain = bool(polygon is not None and polygon.contains(Point(lon, lat)))
+        nearest_id, dist = _nearest_dds(lon, lat)
+        props = {
+            "cam_id": cam_id,
+            "source": "MANUAL",
+            "source_cam_ref": row.get("source_cam_ref"),
+            "name_th": row.get("name_th"),
+            "name_en": row.get("name_en"),
+            "lon": lon,
+            "lat": lat,
+            "loc_method": row["loc_method"],
+            "loc_accuracy_m": _to_float_or_none(row.get("loc_accuracy_m")),
+            "heading_deg": _to_float_or_none(row.get("heading_deg")),
+            "road_name": row.get("road_name"),
+            "refresh_s": _to_int_or_none(row.get("refresh_s")),
+            "calib_refs": row.get("calib_refs"),
+            "priority": _to_int_or_none(row.get("priority")) or 99,
+            "in_domain": in_domain,
+            "nearest_dds_point_id": nearest_id,
+            "dist_dds_m": dist,
+            "road_roi_px": None,
+            "status": row.get("status", "ACTIVE"),
+            "is_mock": bool(row["is_mock"]),
+        }
+        _scrub_no_urls(props)
+        features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]}, "properties": props})
+    return features
+
+
 def _apply_roi_overrides(fc: dict, roi_overrides_path: Path) -> None:
     """Merge cctv/labelling/label_app.py's saved ROI polygons (T51) into road_roi_px."""
     if not roi_overrides_path.exists():
@@ -133,6 +187,7 @@ def build_registry(
     fixture_path: Path = DEFAULT_FIXTURE,
     polygon_path: Path | None = None,
     roi_overrides_path: Path = DEFAULT_ROI_OVERRIDES,
+    manual_cameras_path: Path = DEFAULT_MANUAL_CAMERAS,
 ) -> dict:
     input_csv, fixture_path, output_path = Path(input_csv), Path(fixture_path), Path(output_path)
 
@@ -145,6 +200,8 @@ def build_registry(
             )
         fc = json.loads(fixture_path.read_text())
         fc.setdefault("metadata", {})["is_mock"] = True
+
+    fc["features"].extend(_load_manual_cameras(Path(manual_cameras_path), polygon_path))
 
     _apply_roi_overrides(fc, Path(roi_overrides_path))
 
@@ -161,11 +218,18 @@ def build_registry(
 
 
 def select_for_archive(fc: dict, n: int = 50) -> list[dict]:
-    """In-domain, ACTIVE cameras, sorted by priority then distance to a DDS hotspot."""
+    """In-domain, ACTIVE, auto-fetchable cameras, sorted by priority then
+    distance to a DDS hotspot. Excludes `source == "MANUAL"` -- those only
+    ever get manually-ingested frames (cctv/manual/README.md's NO_GO
+    fallback), never a live snapshot URL, and have no corresponding
+    legal_status.yaml entry for check_legal_gate() to clear.
+    """
     candidates = [
         f
         for f in fc["features"]
-        if f["properties"].get("in_domain") and f["properties"].get("status") == "ACTIVE"
+        if f["properties"].get("in_domain")
+        and f["properties"].get("status") == "ACTIVE"
+        and f["properties"].get("source") != "MANUAL"
     ]
 
     def _key(f):

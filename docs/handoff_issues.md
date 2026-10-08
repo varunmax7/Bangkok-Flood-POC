@@ -2,6 +2,13 @@
 
 Contract mismatches or missing teammate artefacts found while building Varun's lane. Append-only; whoever owns the module should follow up.
 
+## `cctv/registry/cameras.geojson` registry entries for `BMAT-0010`..`BMAT-0014` — lost, not recoverable
+
+**Found in:** investigating a user-reported bad depth estimate for `BMAT-0011` (a real submerged-car frame).
+**What happened:** at some point another concurrent edit to this repo added 5 real cameras (`BMAT-0010`..`BMAT-0014`, including the `BMAT-0011` submerged-car frame) directly into `cctv/registry/cameras.geojson`, bypassing `cctv.registry.build_registry` entirely (no `cctv/registry/cameras_input.csv` was ever created for them — confirmed absent). Several `make test-varun` tests call `tools.fixtures.make_fixtures.main()` + `cctv.registry.build_registry.build_registry()` as part of their setup, which regenerates `cameras.geojson` from scratch (mock fixture cameras + `manual_cameras.json`) and has no way to know about a registry entry that was never written through it — so those 5 cameras' lon/lat/name/road_name were silently dropped the next time any test suite ran.
+**Current state:** the cameras' actual image files (`data/cctv/raw|thumbs/BMAT-001{0..4}/...`) and their frame/observation rows were recovered (`cctv.archiver.compact` merges from `data/cctv/meta/*.jsonl`, which still had them, rather than overwriting) — classifications, depth estimates etc. all still exist in `data/cctv/cctv_obs.parquet`. But these 5 cameras no longer appear on the map/registry at all (no lon/lat survived anywhere), and nothing in this repo records what their real positions were — recreating them would mean inventing coordinates (rule 8), so this wasn't done.
+**Follow-up:** whoever added `BMAT-0010`..`BMAT-0014` needs to either commit a real `cctv/registry/cameras_input.csv` row per camera (the only way an addition survives a registry rebuild) or, if no real location is known, use the `cctv/registry/manual_cameras.json` placeholder path (`cctv.registry.build_registry._load_manual_cameras`) the way `MANUAL-0001`..`MANUAL-0005` do. Either way, never hand-edit `cameras.geojson` directly — anything not reachable from `build_registry()`'s own inputs doesn't survive the next rebuild.
+
 ## `surrogate/dataset.py::block_average` (Rishanth) — not yet built
 
 **Found in:** T70 (`dashboard/render/render_error.py`)

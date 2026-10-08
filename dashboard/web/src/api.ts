@@ -121,6 +121,10 @@ export interface CctvObservation {
   class: string
   class_smoothed: string | null
   probs: Record<string, number>
+  depth_proxy_bin: string | null
+  depth_proxy_m: number | null
+  water_pixel_pct: number | null
+  is_submerged: boolean | null
   quality_flag: string
   thumb_url: string
 }

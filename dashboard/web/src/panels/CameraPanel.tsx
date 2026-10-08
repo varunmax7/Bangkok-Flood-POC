@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api, type CctvObservation } from '../api'
 import { fmtICT, fmtTooltip, nearestByTime } from '../time'
@@ -21,6 +21,25 @@ const CLASS_SEVERITY: Record<string, number> = {
   SEVERE_FLOODING: 3,
 }
 const SEVERITY_LABEL = Object.fromEntries(Object.entries(CLASS_SEVERITY).map(([k, v]) => [v, k]))
+
+// Matches pointLayers.ts's CLASS_COLORS (map-marker halo) so the side panel's
+// badge and the pin it was clicked from always agree on colour.
+const CLASS_HEX: Record<string, string> = {
+  NORMAL: '#64c864',
+  WATERLOGGING: '#e6c83c',
+  FLOODING: '#e67828',
+  SEVERE_FLOODING: '#c82828',
+  UNUSABLE: '#787878',
+}
+
+// (prob column, display label, CLASS_HEX key)
+const PROB_LABELS: [string, string, string][] = [
+  ['p_normal', 'Normal', 'NORMAL'],
+  ['p_waterlogging', 'Waterlogging', 'WATERLOGGING'],
+  ['p_flooding', 'Flooding', 'FLOODING'],
+  ['p_severe', 'Severe flooding', 'SEVERE_FLOODING'],
+  ['p_unusable', 'Unusable', 'UNUSABLE'],
+]
 
 export function CameraPanel({ camId, sliderTimeUtc, onClose }: CameraPanelProps) {
   const [items, setItems] = useState<CctvObservation[]>([])
@@ -62,13 +81,107 @@ export function CameraPanel({ camId, sliderTimeUtc, onClose }: CameraPanelProps)
         </button>
       </div>
       {current ? (
-        <>
+        <div className="camera-row">
           <img src={current.thumb_url} alt={camId} className="camera-thumb" />
-          <p>
-            <span className="badge">{current.class_smoothed ?? current.class}</span>
-            <span className="muted"> visual flood severity proxy &middot; {fmtICT(current.ts_utc)}</span>
-          </p>
-        </>
+          <div className="camera-prediction">
+            <span
+              className="badge badge-severity"
+              style={{ '--severity-color': CLASS_HEX[current.class_smoothed ?? current.class] } as CSSProperties}
+            >
+              {current.class_smoothed ?? current.class}
+            </span>
+            <span className="muted camera-prediction-label">visual flood severity proxy &middot; {fmtICT(current.ts_utc)}</span>
+
+            {/* ── Flood Depth Gauge ── */}
+            {current.depth_proxy_bin && (
+              <div className="depth-gauge-block">
+                <div className="depth-gauge-title">Estimated Flood Depth</div>
+                <div className="depth-gauge-row">
+                  <div className="depth-gauge-bar-wrap">
+                    {/* 5 depth bands: 0–5cm, 5–15cm, 15–30cm, 30–50cm, 50cm+ */}
+                    {[
+                      { label: '0–5 cm', key: 'NORMAL', color: '#64c864' },
+                      { label: '5–15 cm', key: 'WATERLOGGING', color: '#e6c83c' },
+                      { label: '15–30 cm', key: 'FLOODING', color: '#e67828' },
+                      { label: '30–50 cm', key: 'SEVERE_FLOODING', color: '#c82828' },
+                      { label: '50+ cm', key: 'SEVERE_FLOODING_HIGH', color: '#7b0000' },
+                    ].map((band, i) => {
+                      const cls = current.class_smoothed ?? current.class
+                      const active =
+                        (i === 0 && cls === 'NORMAL') ||
+                        (i === 1 && cls === 'WATERLOGGING') ||
+                        (i === 2 && cls === 'FLOODING') ||
+                        (i === 3 && cls === 'SEVERE_FLOODING' && (current.depth_proxy_m ?? 0) < 0.50) ||
+                        (i === 4 && cls === 'SEVERE_FLOODING' && (current.depth_proxy_m ?? 0) >= 0.50)
+                      return (
+                        <div
+                          key={band.label}
+                          title={band.label}
+                          style={{
+                            flex: 1,
+                            height: '22px',
+                            background: active ? band.color : '#e0e0e0',
+                            borderRadius: i === 0 ? '4px 0 0 4px' : i === 4 ? '0 4px 4px 0' : '0',
+                            border: active ? `2px solid ${band.color}` : '2px solid transparent',
+                            transition: 'all 0.3s',
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
+                <div className="depth-gauge-labels">
+                  <span>0</span><span>5cm</span><span>15cm</span><span>30cm</span><span>50cm+</span>
+                </div>
+                <div className="depth-gauge-reading">
+                  <span className="depth-value" style={{ color: CLASS_HEX[current.class_smoothed ?? current.class] }}>
+                    {current.depth_proxy_m != null
+                      ? `~${(current.depth_proxy_m * 100).toFixed(0)} cm (${(current.depth_proxy_m).toFixed(2)} m)`
+                      : '—'}
+                  </span>
+                  <span className="muted"> estimated midpoint</span>
+                  {current.is_submerged && <span className="submerged-flag">⚠ vehicle-submerging depth</span>}
+                </div>
+                {current.water_pixel_pct != null && (
+                  <div className="water-pixel-row">
+                    <span className="muted">Water pixels detected: </span>
+                    <span className="water-pixel-pct" style={{
+                      color: current.water_pixel_pct > 0.3 ? '#c82828' : current.water_pixel_pct > 0.1 ? '#e67828' : '#64c864',
+                      fontWeight: 600,
+                    }}>
+                      {(current.water_pixel_pct * 100).toFixed(1)}%
+                    </span>
+                    <div className="water-pixel-bar-wrap">
+                      <div
+                        className="water-pixel-bar-fill"
+                        style={{
+                          width: `${Math.min(current.water_pixel_pct * 100, 100)}%`,
+                          background: current.water_pixel_pct > 0.3 ? '#c82828' : current.water_pixel_pct > 0.1 ? '#e67828' : '#64c864',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="prob-bars">
+              {PROB_LABELS.map(([key, label, classKey]) => (
+                <div className="prob-bar-row" key={key}>
+                  <span className="prob-bar-label">{label}</span>
+                  <div className="prob-bar-track">
+                    <div
+                      className="prob-bar-fill"
+                      style={{ width: `${(current.probs[key] ?? 0) * 100}%`, background: CLASS_HEX[classKey] }}
+                    />
+                  </div>
+                  <span className="prob-bar-pct">{((current.probs[key] ?? 0) * 100).toFixed(0)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
       ) : (
         <p className="muted">{gap ?? 'Loading…'}</p>
       )}

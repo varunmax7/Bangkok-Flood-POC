@@ -9,6 +9,7 @@ import argparse
 from collections import Counter, deque
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import yaml
 
@@ -30,6 +31,9 @@ OUT_COLUMNS = [
     "p_unusable",
     "class_smoothed",
     "depth_proxy_bin",
+    "depth_proxy_m",
+    "water_pixel_pct",
+    "is_submerged",
     "quality_flag",
     "frame_sha1",
     "model_version",
@@ -55,6 +59,187 @@ def _depth_proxy_bin_for_class(cls: str, bins: dict) -> str | None:
         return None
     lo, hi = bins[cls]
     return f"{lo:.2f}-{hi:.2f}" if hi is not None else f"{lo:.2f}-"
+
+
+def _water_pixel_pct(thumb_path: str | None) -> float | None:
+    """Fraction of thumbnail pixels that look like standing water.
+
+    Improvements over naive blue-only detection:
+    - Analyses only the bottom 60% of the frame (water pools at the bottom
+      of road-level CCTV shots; sky/signage at the top create false positives).
+    - Four complementary water signatures:
+        1. Clear / blue water  – blue-shifted hues, low-medium saturation
+        2. Murky / brown flood – orange-brown hues, high saturation
+           (very common in Bangkok drainage overflow)
+        3. Reflective grey     – near-achromatic, medium brightness
+           (sky reflections on shallow standing water)
+        4. Wet road sheen      – very dark, low-saturation surface
+           (tarmac soaked through but not yet pooling)
+    - Returns None when the thumbnail cannot be opened rather than crashing.
+    """
+    if not thumb_path:
+        return None
+    try:
+        from PIL import Image  # noqa: PLC0415
+        img = Image.open(thumb_path).convert("RGB")
+        # Work at a fixed size for speed; keep aspect ratio
+        img = img.resize((120, 90), Image.LANCZOS)
+        h_px = img.height
+        # Crop to lower 60% — water pools at the bottom of road-cam shots
+        crop_top = int(h_px * 0.40)
+        img = img.crop((0, crop_top, img.width, h_px))
+
+        arr = np.asarray(img, dtype=np.float32) / 255.0
+        r, g, b = arr[..., 0], arr[..., 1], arr[..., 2]
+
+        cmax = np.maximum(np.maximum(r, g), b)
+        cmin = np.minimum(np.minimum(r, g), b)
+        delta = cmax - cmin
+
+        with np.errstate(invalid="ignore", divide="ignore"):
+            hue = np.where(
+                delta == 0, 0.0,
+                np.where(cmax == r, ((g - b) / delta) % 6 / 6,
+                np.where(cmax == g, ((b - r) / delta + 2) / 6,
+                                    ((r - g) / delta + 4) / 6))
+            )
+        sat = np.where(cmax == 0, 0.0, delta / cmax)
+        val = cmax
+
+        # 1. Clear / blue water (canals, clean flood)
+        blue_water = (
+            (hue >= 0.50) & (hue <= 0.72) &
+            (sat >= 0.08) & (sat <= 0.65) &
+            (val >= 0.15) & (val <= 0.80)
+        )
+        # 2. Murky / brown floodwater (Bangkok drainage / sewer overflow)
+        brown_water = (
+            (hue >= 0.02) & (hue <= 0.12) &
+            (sat >= 0.20) & (sat <= 0.85) &
+            (val >= 0.15) & (val <= 0.65)
+        )
+        # 3. Reflective grey (shallow water reflecting overcast sky)
+        grey_water = (
+            (sat <= 0.12) &
+            (val >= 0.30) & (val <= 0.72) &
+            (np.abs(r - g) <= 0.06) & (np.abs(g - b) <= 0.06)
+        )
+        # 4. Wet road sheen (very dark, near-achromatic — flooded tarmac)
+        wet_road = (
+            (sat <= 0.18) &
+            (val >= 0.05) & (val <= 0.32)
+        )
+
+        # Weight each mask by confidence so noisy pixels count less.
+        # [ASSUMPTION] grey_water raised 0.60->0.80: verified against a real
+        # submerged-car frame (BMAT-0011) where turbid floodwater under
+        # overcast light reads as near-achromatic -- mean saturation ~0.10,
+        # not the >=0.20 brown_water needs -- so ~84% of its water surface
+        # was only ever caught by grey_water, and the old 0.60 weight (tuned
+        # for "shallow puddle reflecting sky", a different real signature)
+        # undercounted deep/extensive flooding whenever it wasn't vividly
+        # blue or saturated brown. Still an unvalidated heuristic either way
+        # (no labelled ground truth exists yet -- T52 blocked on HU5): a
+        # known-dry mock fixture frame (BMAT-0000, flat grey synthetic road)
+        # already read ~59% "water" even at the old weight, from grey dry
+        # pavement matching the same mask. That case's depth_proxy_m stays
+        # correct regardless (p_severe≈0 there, so the pixel-based scaling
+        # below never engages) -- but the raw water_pixel_pct the UI shows
+        # can still look wrong on a dry grey road. Revisit with real labels.
+        score = (
+            blue_water.astype(np.float32) * 1.0 +
+            brown_water.astype(np.float32) * 0.90 +
+            grey_water.astype(np.float32) * 0.80 +
+            wet_road.astype(np.float32) * 0.35
+        )
+        # Cap per-pixel score at 1.0 (overlapping masks shouldn't inflate)
+        score = np.clip(score, 0.0, 1.0)
+        return float(round(score.mean(), 4))
+    except Exception:  # noqa: BLE001
+        return None
+
+
+# Water-pixel thresholds for scaling depth within SEVERE_FLOODING.
+# Physical reference points at a road-level CCTV (~2m mount height):
+#   0.10 = ankle puddles (~10 cm)
+#   0.25 = knee level     (~30 cm)
+#   0.40 = car door sill  (~50 cm)
+#   0.55 = car bonnet     (~80 cm)  ← 54 % pixel case
+#   0.70 = car roof       (~120 cm)
+#   0.85 = car fully under (~150 cm+)
+_SEVERE_PIXEL_BREAKPOINTS = [
+    (0.00, 0.30),   # water_pct < 10 % → 30 cm
+    (0.10, 0.40),
+    (0.25, 0.55),
+    (0.40, 0.70),
+    (0.55, 0.90),   # ← 54% water_pct → ~90 cm
+    (0.70, 1.20),
+    (0.85, 1.50),
+]
+
+
+def _severe_depth_from_pixels(water_pct: float) -> float:
+    """Linear-interpolate depth in metres from water pixel percentage.
+    Only used when argmax class is SEVERE_FLOODING."""
+    pts = _SEVERE_PIXEL_BREAKPOINTS
+    for i in range(len(pts) - 1):
+        p0, d0 = pts[i]
+        p1, d1 = pts[i + 1]
+        if water_pct <= p1:
+            t = (water_pct - p0) / max(p1 - p0, 1e-6)
+            return round(d0 + t * (d1 - d0), 3)
+    return pts[-1][1]  # above last breakpoint → max
+
+
+def _depth_estimate_combined(
+    probs: dict[str, float],
+    bins: dict,
+    water_pixel_pct: float | None,
+) -> float | None:
+    """Best-estimate depth in metres combining CLIP probabilities + pixel water %.
+
+    For NORMAL / WATERLOGGING / FLOODING the CLIP-weighted blend is used
+    (smooth, more precise than argmax alone).
+
+    For SEVERE_FLOODING the pixel fraction drives the estimate: 54 % water
+    pixels at road-cam height correspond to ~80-90 cm (car bonnet level),
+    not the naive 47 cm cap.  When water_pixel_pct is unavailable we fall
+    back to the CLIP-weighted value.
+    """
+    class_map = {
+        "p_normal": "NORMAL",
+        "p_waterlogging": "WATERLOGGING",
+        "p_flooding": "FLOODING",
+        "p_severe": "SEVERE_FLOODING",
+    }
+    # CLIP-weighted base (ignoring p_unusable in the depth blend)
+    total_w = 0.0
+    total_m = 0.0
+    for prob_key, cls in class_map.items():
+        w = probs.get(prob_key, 0.0)
+        if w <= 0 or cls not in bins or bins[cls] is None:
+            continue
+        lo, hi = bins[cls]
+        mid = (lo + (hi if hi is not None else lo + 0.40)) / 2
+        total_w += w
+        total_m += w * mid
+    if total_w == 0:
+        return None
+    clip_depth = total_m / total_w
+
+    p_severe = probs.get("p_severe", 0.0)
+
+    # When SEVERE_FLOODING dominates AND we have pixel data, use the pixel
+    # scale (which extends to 1.50 m) weighted by SEVERE confidence.
+    if p_severe >= 0.50 and water_pixel_pct is not None:
+        pixel_depth = _severe_depth_from_pixels(water_pixel_pct)
+        # Blend: high p_severe → trust pixels more; mixed → average with CLIP
+        depth = p_severe * pixel_depth + (1.0 - p_severe) * clip_depth
+    else:
+        depth = clip_depth
+
+    return round(depth, 3)
+
 
 
 def _smoothed_series(df: pd.DataFrame) -> list[str | None]:
@@ -112,6 +297,29 @@ def build_cctv_obs(
             probs = {c: 0.0 for c in PROB_COLS}
             probs["p_unusable"] = 1.0
 
+        # Resolve the thumbnail path so we can compute water pixel %
+        ts_str = str(row["ts_utc"])
+        date_str = ts_str[:10].replace("-", "")
+        ts_file = ts_str.replace("-", "").replace(":", "")
+        thumb_path = f"data/cctv/thumbs/{row['cam_id']}/{date_str}/{row['cam_id']}_{ts_file}.jpg"
+        wpct = _water_pixel_pct(thumb_path) if cls != "UNUSABLE" else None
+
+        # Combined depth: CLIP-weighted blend, but for SEVERE_FLOODING scaled
+        # by water_pixel_pct (a 54%-submerged-car frame reads as ~0.89 m, not
+        # a flat 0.47 m bin-midpoint cap) -- see _depth_estimate_combined.
+        depth_m = _depth_estimate_combined(probs, bins, wpct) if cls != "UNUSABLE" else None
+
+        # [ASSUMPTION] "submerged" = classifier already confident this frame
+        # is SEVERE_FLOODING (p_severe >= 0.50, same gate _depth_estimate_combined
+        # uses) AND water_pixel_pct is at/above the car-roof breakpoint (0.70,
+        # see _SEVERE_PIXEL_BREAKPOINTS). Gating on p_severe too (not pixel %
+        # alone) matters: grey_water's mask can't distinguish turbid floodwater
+        # from plain dry grey pavement by colour alone (see the grey_water
+        # weight comment above) -- a dry mock frame (BMAT-0000) reads ~79%
+        # "water" on pixels alone, which would otherwise flag it SUBMERGED
+        # despite p_severe≈0. None (not False) when water_pixel_pct is unknown.
+        is_submerged = (probs.get("p_severe", 0.0) >= 0.50 and wpct >= 0.70) if wpct is not None else None
+
         rows.append(
             {
                 "cam_id": row["cam_id"],
@@ -119,6 +327,9 @@ def build_cctv_obs(
                 "class": cls,
                 **probs,
                 "depth_proxy_bin": _depth_proxy_bin_for_class(cls, bins),
+                "depth_proxy_m": depth_m,
+                "water_pixel_pct": wpct,
+                "is_submerged": is_submerged,
                 "quality_flag": row["quality_flag"],
                 "frame_sha1": row["sha1"],
                 "model_version": version,
@@ -126,6 +337,7 @@ def build_cctv_obs(
                 "is_mock": False,
             }
         )
+
 
     out = pd.DataFrame(rows)
     out["class_smoothed"] = _smoothed_series(out)

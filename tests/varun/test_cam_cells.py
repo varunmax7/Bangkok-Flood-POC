@@ -95,7 +95,7 @@ def test_cam_cells_has_both_resolutions_for_real_registry():
     cells = build_cam_cells()  # real registry (T11 fixture fallback), real output path
     assert set(cells["grid_res_m"].unique()) == {20, 40}
     assert Path("validation/cctv/cam_cells.parquet").exists()
-    assert cells["cam_id"].nunique() <= 10
+    assert cells["cam_id"].nunique() <= 15  # 10 mock fixture cameras + 5 MANUAL-000N (cctv/registry/manual_cameras.json)
 
 
 def test_model_series_bin_matches_depth_bins_m():

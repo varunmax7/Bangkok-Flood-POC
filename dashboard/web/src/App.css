@@ -123,11 +123,80 @@
   color: #ffd699;
 }
 
+.camera-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
 .camera-thumb {
-  width: 100%;
-  border-radius: 4px;
+  width: 112px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 6px;
   display: block;
-  margin-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.camera-prediction {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.camera-prediction-label {
+  display: block;
+}
+
+.badge-severity {
+  align-self: flex-start;
+  background: color-mix(in srgb, var(--severity-color) 28%, #1b1f26);
+  color: var(--severity-color);
+  border: 1px solid var(--severity-color);
+  font-weight: 600;
+}
+
+.prob-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.prob-bar-row {
+  display: grid;
+  grid-template-columns: 78px 1fr 30px;
+  align-items: center;
+  gap: 6px;
+}
+
+.prob-bar-label {
+  font-size: 10.5px;
+  color: #9aa3ad;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prob-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: #262b33;
+  overflow: hidden;
+}
+
+.prob-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.prob-bar-pct {
+  font-size: 10.5px;
+  text-align: right;
+  color: #9aa3ad;
+  font-variant-numeric: tabular-nums;
 }
 
 .metrics-list {
@@ -447,4 +516,91 @@
   margin-left: auto;
   color: #e0b040;
   font-weight: 600;
+}
+
+/* ── Flood Depth Gauge (CameraPanel) ── */
+.depth-gauge-block {
+  margin: 10px 0 6px;
+  padding: 10px 12px;
+  background: #1a1f28;
+  border: 1px solid #2a3040;
+  border-radius: 8px;
+}
+
+.depth-gauge-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9aa3ad;
+  margin-bottom: 8px;
+}
+
+.depth-gauge-row {
+  margin-bottom: 4px;
+}
+
+.depth-gauge-bar-wrap {
+  display: flex;
+  gap: 2px;
+  height: 22px;
+}
+
+.depth-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #6b7785;
+  margin-top: 3px;
+  padding: 0 1px;
+}
+
+.depth-gauge-reading {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.depth-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.submerged-flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: #4a1f1f;
+  color: #ff8a8a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.water-pixel-row {
+  margin-top: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.water-pixel-pct {
+  font-variant-numeric: tabular-nums;
+}
+
+.water-pixel-bar-wrap {
+  flex: 1;
+  min-width: 60px;
+  height: 6px;
+  background: #2a3040;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.water-pixel-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
 }
