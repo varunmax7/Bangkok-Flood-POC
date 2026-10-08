@@ -1,0 +1,26 @@
+{
+  "stations": [
+    {
+      "code": "RN-01",
+      "type": "rain",
+      "name": "Din Daeng Rain Gauge",
+      "lat": 13.7700,
+      "lon": 100.5700,
+      "readings": [
+        {"time": "2026-09-25 10:00:00", "value_mm": 5.2},
+        {"time": "2026-09-25 10:15:00", "value_mm": 8.1}
+      ]
+    },
+    {
+      "code": "LV-01",
+      "type": "level",
+      "name": "Khlong Prem Level Gauge",
+      "lat": null,
+      "lon": null,
+      "readings": [
+        {"time": "2026-09-25 10:00:00", "value_m": 1.20},
+        {"time": "2026-09-25 10:15:00", "value_m": 1.35}
+      ]
+    }
+  ]
+}

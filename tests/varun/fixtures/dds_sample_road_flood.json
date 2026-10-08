@@ -1,0 +1,34 @@
+{
+  "points": [
+    {
+      "id": "RFP-001",
+      "road": "Sukhumvit Rd",
+      "district": "Khlong Toei",
+      "time": "2026-09-25 10:15:00",
+      "depth_cm": 12.5,
+      "lane": "inbound",
+      "lat": 13.7300,
+      "lon": 100.5600
+    },
+    {
+      "id": "RFP-002",
+      "road": "Rama IV Rd",
+      "district": "Bang Rak",
+      "time": "2026-09-25 10:15:00",
+      "depth_cm": 28.0,
+      "lane": "outbound",
+      "lat": 13.7250,
+      "lon": 100.5300
+    },
+    {
+      "id": "RFP-003",
+      "road": "Phetchaburi Rd",
+      "district": "Ratchathewi",
+      "time": "2026-09-25 10:30:00",
+      "depth_cm": 0.0,
+      "lane": null,
+      "lat": null,
+      "lon": null
+    }
+  ]
+}
