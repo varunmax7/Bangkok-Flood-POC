@@ -27,3 +27,5 @@ fixtures:
 	python -m tools.fixtures.make_fixtures
 test-varun:
 	pytest -q tests/varun
+
+.PHONY: cctv-archive cctv-health cctv-compact dds-snapshot dds-parse cctv-classify label frames frames-all frames-satellite api web dashboard fixtures test-varun
