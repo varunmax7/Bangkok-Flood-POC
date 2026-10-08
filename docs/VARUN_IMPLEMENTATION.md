@@ -142,7 +142,7 @@ Today is Wed 07 Oct, ~20:00 ICT (Day 2 gate passed). Tick what already exists be
 | T70 | Surrogate layers, swipe, error, σ, OOD banner | V4.1 | DONE | render_error.py (error_v1, block_average TEMP until surrogate.dataset lands — docs/handoff_issues.md); swipe (ClipExtension), σ in the variable toggle, MetricsPanel pass/fail chips against [ASSUMPTION] POC targets (§21 unavailable), validation-points layer (ready, backend doesn't populate hit/miss yet). Playwright-verified: 7/7 tests, incl. 2 pytest `-k error` tests (sign + transparency on a controlled synthetic case — fixture noise is too small to reliably cross the threshold). Found a real app bug along the way: TimeSlider's animation effect keyed on the manifest object reference, so any redundant re-fetch (e.g. React StrictMode's double mount) silently reset playback |
 | T71 | What-if `POST /api/predict` | V4.1 | DONE | Mock mode end to end: validation, caching, PARTIAL→DONE polling, OOD flag; first frames in ~0.5s (target ≤5s). 17/17 tests green. HU6 (confirm contract with Rishanth) not done yet — mock stays active regardless (§3 fallback). WhatIfPanel.tsx now built and wired in as part of T31 |
 | T80 | Provenance, MOCK watermark, sensor-ingest stub + spec | V4.2 | DONE | Footer/watermark/badges/CCTV text were already built in T31, but found a real gap: the manifest contract merged model_version+surrogate_version into one field, so the footer couldn't show both — fixed at the source (render_frames.py). `/ingest/v1/observations` fully implemented (auth, schema validation, idempotency, partial rejection); 16/16 new tests. `docs/sensor_ingestion_spec.md` written ([ASSUMPTION]: §19's diagram isn't in this repo, reconstructed from cross-references) |
-| T81 | Perf checks, docs, demo script (🧑 HU8 recording) | V4.2 | TODO | |
+| T81 | Perf checks, docs, demo script (🧑 HU8 recording) | V4.2 | DONE (except HU8) | Privacy tests (4/4), perf measured (load ~350-485ms, frame switch ~1-2ms, what-if ~0.7-0.9s — all comfortably under target), demo script + README + POC summary written, all 8 demo beats walked through live with zero console errors. 126/126 Python + 7/7 Playwright green. HU8 (demo.mp4 recording) is yours to do |
 
 ### 4.1 Execution order (compressed to the remaining POC window)
 | Slot (ICT) | Cards | Why this order |
@@ -712,10 +712,10 @@ def predict(base_scenario_id: str, rain_scale: float, duration_stretch: float,
 
 ## 7. Gate checklists (Varun's items)
 
-**G1 (D1):** ☐ T10 decisions recorded (HU1) ☐ T11 registry ☐ T20 archiver live or NO_GO documented ☐ T21 snapshotter live or blocked ☐ T30/T31 skeleton with domain
-**G2 (D2):** ☐ components #1, 2, 5, 6, 7, 12, 15 on mock ☐ T40 renderer on H2 real output ☐ T41 frame switch ≤ 200 ms
-**G3 (D3 18:00):** ☐ **H6 delivered** (T53) or legal-block doc ☐ macro-F1 on held-out cameras (T52) ☐ T54 cam_cells shared ☐ T60 real animations + satellite/obs layers or explicit gaps
-**G4 (D4 18:00):** ☐ T70 #11, 14, 17 ☐ T71 what-if ≤ 5 s ☐ OOD banner on S19/S20 ☐ T80 provenance + ingest stub ☐ T81 tests green, demo recorded, summary inputs
+**G1 (D1):** ☐ T10 decisions recorded (HU1 — still all PENDING, yours to do) · ☑ T11 registry (on fixtures) · ☐ T20 archiver live or NO_GO documented (blocked on T10+HU3, neither live nor NO_GO yet) · ☑ T21 snapshotter blocked (explicitly, pending HU4 — satisfies the "or blocked" clause) · ☑ T30/T31 skeleton with domain
+**G2 (D2):** ☑ components #1, 2, 5, 6, 7, 12, 15 on mock · ☐ T40 renderer on H2 real output (renderer works, no real H2 exists to run it on yet) · ☑ T41 frame switch ≤ 200 ms (measured ~1–2ms)
+**G3 (D3 18:00):** ☑ **H6 delivered** (T53, on fixtures) · ☐ macro-F1 on held-out cameras (T52 — blocked on HU5 labels) · ☑ T54 cam_cells shared (importable, unit-tested) · ☐ T60 real animations + satellite/obs layers (card itself not run — blocked on H2/H4; the satellite/observations *endpoints* already return explicit gaps on fixtures)
+**G4 (D4 18:00):** ☑ T70 #11, 14, 17 · ☑ T71 what-if ≤ 5 s (measured ~0.7–0.9s) · ☑ OOD banner (adapted: shown via extreme what-if params, since static S19/S20 scenarios don't exist yet) · ☑ T80 provenance + ingest stub · T81: ☑ tests green (126/126 Python, 7/7 Playwright) · ☐ demo recorded (HU8, yours to do) · ☑ summary inputs (`reports/POC_SUMMARY_varun.md`)
 
 ---
 
