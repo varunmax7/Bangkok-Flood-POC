@@ -50,6 +50,12 @@ export function MapView({ layers, bounds }: MapViewProps) {
     map.on('load', () => map.addControl(overlay))
     mapRef.current = map
     overlayRef.current = overlay
+    // deck.gl renders every point/frame layer to one shared canvas with no
+    // per-feature DOM node, so Playwright has nothing to select for "click
+    // this camera marker" -- expose the map for tests to project a known
+    // lon/lat to a pixel instead. Harmless in production (just an unused
+    // global); not part of the app's own logic.
+    ;(window as unknown as { __map?: MapLibreMap }).__map = map
     return () => {
       map.remove()
       mapRef.current = null

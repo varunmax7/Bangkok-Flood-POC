@@ -163,17 +163,33 @@ def get_run_frames(run_id: str, var: str = "depth") -> dict | None:
     return None
 
 
-def get_run_satellite(run_id: str) -> list[dict]:
-    # Rendered in T60 (render_satellite.py); nothing to show before that lands.
-    base = get_settings().frames_dir / "satellite"
+def _scenario_id_for_run(run_id: str) -> str | None:
+    """A satellite acquisition is tied to a scenario, not a run -- the
+    same acquisition can be shown against that scenario's hydraulic,
+    surrogate, or what-if runs. Look up which scenario this run_id's own
+    frame manifest says it belongs to."""
+    base = get_settings().frames_dir
     if not base.exists():
-        return []
-    items = []
-    for manifest_path in base.glob(f"*/manifest.json"):
+        return None
+    for manifest_path in base.glob(f"*/{run_id}/*/manifest.json"):
         data = _cached(manifest_path, _read_json) or {}
-        if data.get("run_id") == run_id:
-            items.extend(data.get("acquisitions", []))
-    return items
+        scenario_id = data.get("scenario_id")
+        if scenario_id:
+            return scenario_id
+    return None
+
+
+def get_run_satellite(run_id: str) -> list[dict]:
+    # Rendered in T60 (render_satellite.py, keyed by scenario_id); nothing
+    # to show before that's run for this run's scenario.
+    scenario_id = _scenario_id_for_run(run_id)
+    if scenario_id is None:
+        return []
+    manifest_path = get_settings().frames_dir / "satellite" / scenario_id / "manifest.json"
+    data = _cached(manifest_path, _read_json)
+    if not data:
+        return []
+    return data.get("acquisitions", [])
 
 
 # -------------------------------------------------------------- stations ---

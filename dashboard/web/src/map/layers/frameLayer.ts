@@ -1,6 +1,6 @@
 import { BitmapLayer } from '@deck.gl/layers'
 import { ClipExtension } from '@deck.gl/extensions'
-import type { RunFramesManifest } from '../../api'
+import type { RunFramesManifest, SatelliteAcquisition } from '../../api'
 import { frameUrl } from '../framePreloader'
 
 export interface FrameLayerOptions {
@@ -47,4 +47,17 @@ export function swipeFrameLayers(
     clipBounds: [swipeLon, s, e, n],
   })
   return [left, right].filter((l): l is NonNullable<typeof l> => l !== null)
+}
+
+/** T60: a single rendered satellite flood-mask acquisition, if the scenario
+ * has one -- callers show the "No coincident acquisition [DATA GAP]" note
+ * when there isn't one instead of rendering nothing silently. */
+export function satelliteLayer(acquisition: SatelliteAcquisition | null, opacity = 0.75) {
+  if (!acquisition) return null
+  return new BitmapLayer({
+    id: 'satellite',
+    image: acquisition.png_url,
+    bounds: acquisition.bounds,
+    opacity,
+  })
 }

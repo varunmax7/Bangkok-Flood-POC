@@ -102,6 +102,31 @@ def test_run_satellite_gap(client):
     assert "gap" in body
 
 
+def test_run_satellite_once_t60_has_rendered(client):
+    """Integration check: render a fixture run (T40) + the fixture scenario's
+    satellite acquisition (T60), then read it back through T30 -- a
+    satellite acquisition is keyed by scenario_id, so this also exercises
+    store._scenario_id_for_run's run_id -> scenario_id lookup."""
+    from dashboard.render.render_frames import render_vars
+    from dashboard.render.render_satellite import render_scenario
+
+    run_id = "MOCK_BKK-S99_M000_lfp_mock-0"
+    nc_path = mf.OUT / "MOCK_BKK-S99" / "M000" / "depth.nc"
+    render_vars(nc_path, run_id, "hydraulic", ["depth"])
+    render_scenario("MOCK_BKK-S99")
+
+    r = client.get(f"/api/runs/{run_id}/satellite")
+    assert r.status_code == 200
+    body = r.json()
+    assert "gap" not in body
+    assert len(body["items"]) == 1
+    item = body["items"][0]
+    assert item["sensor"] == "S1A"
+    assert item["png_url"] == "/frames/satellite/MOCK_BKK-S99/S1A_20260925T230000Z.png"
+    assert item["hours_from_peak"] == pytest.approx(13.0)
+    assert len(item["bounds"]) == 4
+
+
 def test_stations_and_timeseries(client):
     r = client.get("/api/stations")
     assert r.status_code == 200

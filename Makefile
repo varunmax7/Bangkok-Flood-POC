@@ -16,6 +16,8 @@ frames:           ## make frames RUN=<run_id> SRC=hydraulic|surrogate NC=<path>
 	python -m dashboard.render.render_frames --run-id $(RUN) --source $(SRC) --nc $(NC)
 frames-all:
 	python -m dashboard.render.render_all
+frames-satellite: ## render every scenario's satellite acquisitions (T60)
+	python -m dashboard.render.render_satellite
 api:
 	uvicorn dashboard.api.main:app --reload --port 8000
 web:

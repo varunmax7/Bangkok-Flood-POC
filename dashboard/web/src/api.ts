@@ -125,6 +125,14 @@ export interface CctvObservation {
   thumb_url: string
 }
 
+export interface SatelliteAcquisition {
+  sensor: string
+  ts_utc: string
+  hours_from_peak: number
+  png_url: string
+  bounds: [number, number, number, number]
+}
+
 export interface ValidationResponse {
   metrics: Record<string, number | boolean> | null
   targets: unknown
@@ -168,8 +176,10 @@ export const api = {
   cctv: () => getJSON<CctvGeoJSON>('/api/cctv'),
   cctvObservations: (camId: string) =>
     getJSON<{ items: CctvObservation[]; gap?: string }>(`/api/cctv/${encodeURIComponent(camId)}/observations`),
+  runSatellite: (runId: string) =>
+    getJSON<{ items: SatelliteAcquisition[]; gap?: string }>(`/api/runs/${encodeURIComponent(runId)}/satellite`),
   observations: (scenarioId: string) =>
-    getJSON<GeoJSON.FeatureCollection>(`/api/observations?scenario_id=${encodeURIComponent(scenarioId)}`),
+    getJSON<GeoJSON.FeatureCollection & { gap?: string }>(`/api/observations?scenario_id=${encodeURIComponent(scenarioId)}`),
   validation: (runId: string) => getJSON<ValidationResponse>(`/api/validation/${encodeURIComponent(runId)}`),
   predict: (params: PredictParams) => postJSON<PredictJob>('/api/predict', params),
   predictStatus: (runId: string) => getJSON<PredictJob>(`/api/predict/${encodeURIComponent(runId)}`),
