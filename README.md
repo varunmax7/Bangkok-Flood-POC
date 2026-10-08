@@ -6,7 +6,7 @@ Feasibility prototype — not for flood warning. See `docs/VARUN_IMPLEMENTATION.
 
 ```bash
 # one-time setup
-python3.12 -m venv .venv && .venv/bin/pip install -r <(grep -v '^#' environment.yml)  # or: conda env create -f environment.yml
+python3.12 -m venv .venv && .venv/bin/pip install -r requirements-lock.txt  # or: conda env create -f environment.yml
 source .venv/bin/activate
 cd dashboard/web && npm install && cd ../..
 
@@ -19,6 +19,7 @@ python -m dashboard.render.render_frames --run-id MOCK_BKK-S99_M000_sur_mock-0 -
   --nc tools/fixtures/out/MOCK_BKK-S99/surrogate/pred.nc --vars depth,extent,sigma
 python -m dashboard.render.render_error --hydraulic-nc tools/fixtures/out/MOCK_BKK-S99/M000/depth.nc \
   --surrogate-nc tools/fixtures/out/MOCK_BKK-S99/surrogate/pred.nc --run-id MOCK_BKK-S99_M000_sur_mock-0
+make frames-satellite   # T60: renders the fixture's satellite acquisition (else the UI toggle just shows a gap)
 make cctv-classify
 
 # run it

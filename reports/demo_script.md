@@ -12,6 +12,7 @@ python -m dashboard.render.render_frames --run-id MOCK_BKK-S99_M000_sur_mock-0 -
   --nc tools/fixtures/out/MOCK_BKK-S99/surrogate/pred.nc --vars depth,extent,sigma
 python -m dashboard.render.render_error --hydraulic-nc tools/fixtures/out/MOCK_BKK-S99/M000/depth.nc \
   --surrogate-nc tools/fixtures/out/MOCK_BKK-S99/surrogate/pred.nc --run-id MOCK_BKK-S99_M000_sur_mock-0
+make frames-satellite
 make cctv-classify
 make dashboard   # api :8000 + web :5173
 ```
@@ -23,16 +24,16 @@ Open `http://localhost:5173`.
    Point at the domain boundary outline on the map and the scenario selector (TRAIN group, badges SYNTHETIC/MOCK). Explain: this is the feasibility-prototype domain, chosen to cover the canal/drainage area the CCTV cameras and DDS gauges fall inside.
 
 2. **Hydraulic animation** (original: S07 with DDS hit/miss) — *adapted*
-   Press play on the time slider (2 fps default). Watch the two synthetic ponds rise and recede over the 24h window. **Explicit gap, not hidden:** real DDS road-flood points (H4) haven't landed, so there's nothing to show hit/miss against yet — say so out loud rather than skip past it; `GET /api/observations` already returns a clean `gap` message for this, it's just that the gap is real right now.
+   Press play on the time slider (2 fps default). Watch the two synthetic ponds rise and recede over the 24h window. Toggle "📍 show observations" — fixture DDS road-flood points (depth-cm labelled, coloured by severity) and clustered citizen reports appear and disappear as the slider passes within ±30 min of each one's timestamp (T60). Be upfront: these are the T01 synthetic fixtures, not real DDS data (H4 hasn't landed) — the UI/API path is fully real, the points underneath aren't yet.
 
 3. **Swipe: hydraulic vs surrogate + error + metrics vs targets**
    Click "⇄ compare vs surrogate" — the map splits into a draggable hydraulic/surrogate swipe. Toggle the Legend to `sigma` to show the surrogate's own uncertainty layer. Open the Metrics panel: six metrics, each with a PASS/FAIL chip against the POC targets (`[ASSUMPTION]`-tagged in `docs/assumptions.md` since §21's real targets aren't in this repo). All six pass on the fixture today — say that plainly, since a POC built to always pass its own targets isn't informative; the honest claim is "the dashboard shows pass/fail clearly, not that these specific numbers are validated."
 
 4. **Satellite overlay or explicit gap** (original: S01) — *adapted*
-   Hit `GET /api/runs/{run_id}/satellite` (or just note it in the UI if wired) — returns `{"items": [], "gap": "No coincident acquisition [DATA GAP]"}` today, since no real Sentinel-1 acquisition exists yet (H4). The contract is there; there's nothing to render until real data lands.
+   Toggle "🛰️ show satellite" — the fixture's synthetic flood-mask acquisition renders over the domain (T60, `render_satellite.py`). Point out the gap path too: querying a run with no rendered acquisition for its scenario returns `{"items": [], "gap": "No coincident acquisition [DATA GAP]"}` — that's what a real scenario without a coincident Sentinel-1 pass (H4) would show today.
 
 5. **CCTV frames + class timeline vs model at camera**
-   Click a camera marker — CameraPanel shows the latest blurred thumbnail, its class badge ("visual flood severity proxy", never "depth"), and timestamp. Be upfront: on these synthetic fixture frames, the zero-shot CLIP classifier reads every frame as `NORMAL` (the "water" in the fixture is a flat blue rectangle, nothing like a real flood photo — see `docs/assumptions.md`). This is real, working CLIP inference on CCTV-shaped images; it just hasn't seen a real flood yet.
+   Click a camera marker — CameraPanel shows the blurred thumbnail nearest the slider's current time (not just the newest overall, T60), its class badge ("visual flood severity proxy", never "depth"), timestamp, and a step-chart timeline of its class over the whole scenario window. Be upfront: on these synthetic fixture frames, the zero-shot CLIP classifier reads every frame as `NORMAL` (the "water" in the fixture is a flat blue rectangle, nothing like a real flood photo — see `docs/assumptions.md`). This is real, working CLIP inference on CCTV-shaped images; it just hasn't seen a real flood yet.
 
 6. **What-if: rain ×1.5, canal +0.5 m** (original: "push to S19")  — *adapted*
    In the What If panel, drag `rain_scale` to 1.5 and `canal_stage_anom_m` to 0.5, click "Run what-if". First frames land in well under a second (measured: ~0.7–0.9s on this machine; target ≤5s). Watch the status go `PARTIAL` → `DONE` as the rest of the run finishes in the background.
