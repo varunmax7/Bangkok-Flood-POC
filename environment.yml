@@ -16,7 +16,10 @@ dependencies:
       - apscheduler~=3.11
       - pillow~=12.3
       - imagehash~=4.3
-      - opencv-python-headless~=5.0
+      # pinned <5 on purpose: 5.x dropped cv2.CascadeClassifier and no
+      # longer bundles the Haar cascade XML data cctv/archiver/privacy.py
+      # relies on (T20) -- see docs/assumptions.md
+      - opencv-python-headless~=4.14
       - open_clip_torch~=3.3
       - torch~=2.14
       - scikit-learn~=1.9
